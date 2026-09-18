@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตัดยอดฝากจาก Statement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root {
+  --paper: #ffffff; --surface: #f3f6f9; --ink: #1b2b44; --muted: #5b6a7d; --rule: #d6dde6;
+  --accent: #1f4e78; --accent-ink: #ffffff; --neg: #b3261e; --ok: #2e7d32;
+  --hl1: #ffe699; --hl2: #f8cbad; --hl3: #bdd7ee; --hl4: #d9c3e9; --hl-ink: #1b2b44;
+  --net: #e2efda; --drop: #f8fafc;
+  --font: "IBM Plex Sans Thai", "Leelawadee UI", "Noto Sans Thai", Tahoma, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12171f; --surface: #1a212b; --ink: #e7ecf2; --muted: #9aa7b6; --rule: #2b3442;
+    --accent: #8db9e3; --accent-ink: #0e1620; --neg: #ff8a80; --ok: #81c784;
+    --net: #22382a; --drop: #161c25; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12171f; --surface: #1a212b; --ink: #e7ecf2; --muted: #9aa7b6; --rule: #2b3442;
+  --accent: #8db9e3; --accent-ink: #0e1620; --neg: #ff8a80; --ok: #81c784;
+  --net: #22382a; --drop: #161c25; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.65; }
+main { max-width: 900px; margin: 0 auto; padding: 48px 20px 96px; }
+h1 { font-size: clamp(1.9rem, 4.6vw, 2.8rem); line-height: 1.2; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.01em; }
+.lede { color: var(--muted); max-width: 60ch; margin: 0 0 36px; font-size: 1.05rem; }
+h2 { font-size: 1.3rem; font-weight: 600; margin: 0 0 4px; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-size: .95rem; color: var(--muted); font-weight: 500; min-width: 1.2em; }
+.step { margin-top: 44px; }
+.step > p.sub { color: var(--muted); margin: 0 0 18px 2.1em; max-width: 64ch; }
+[hidden] { display: none !important; }
+
+/* drop zone */
+.drop { position: relative; display: grid; place-items: center; text-align: center; gap: 10px; min-height: 220px; padding: 32px 20px;
+  border: 2px dashed var(--rule); border-radius: 14px; background: var(--drop); transition: border-color .15s, background .15s; }
+.drop.over { border-color: var(--accent); background: var(--surface); }
+.drop strong { font-size: 1.2rem; font-weight: 600; }
+.drop small { color: var(--muted); }
+.btn { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 11px 22px; cursor: pointer; background: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: .55; cursor: progress; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--rule); padding: 8px 16px; font-weight: 500; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.filecard { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; padding: 16px 20px;
+  border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); }
+.filecard b { font-weight: 600; word-break: break-all; }
+.filecard span { color: var(--muted); font-size: .95rem; display: block; }
+.msg { margin-top: 14px; padding: 12px 16px; border-radius: 10px; border-left: 4px solid var(--neg); background: var(--surface); }
+.msg.ok { border-left-color: var(--ok); }
+
+/* options */
+.opts { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 720px) { .opts { grid-template-columns: 1fr 1fr; } }
+.opt { border: 1px solid var(--rule); border-radius: 12px; padding: 18px 20px 20px; background: var(--paper); }
+.opt h3 { margin: 0 0 6px; font-size: 1.05rem; font-weight: 600; }
+.mark { color: var(--hl-ink); padding: 0 .25em; margin-left: -.25em; border-radius: 3px;
+  background: linear-gradient(transparent 38%, var(--hl) 38%, var(--hl) 92%, transparent 92%); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mark { color: var(--ink); background: none; text-decoration: underline; text-decoration-color: var(--hl); text-decoration-thickness: .22em; text-underline-offset: .42em; text-decoration-skip-ink: none; } }
+:root[data-theme="dark"] .mark { color: var(--ink); background: none; text-decoration: underline; text-decoration-color: var(--hl); text-decoration-thickness: .22em; text-underline-offset: .42em; text-decoration-skip-ink: none; }
+.o1 { --hl: var(--hl1); } .o2 { --hl: var(--hl2); } .o3 { --hl: var(--hl3); } .o4 { --hl: var(--hl4); } .ox { --hl: #dcdcdc; }
+@media (min-width: 720px) { .opt.ox { grid-column: 1 / -1; } .ox .row2 { gap: 20px; } }
+.exnote { margin: 10px 2px 0; font-size: .92rem; color: var(--muted); }
+.opt p { margin: 0 0 12px; color: var(--muted); font-size: .95rem; }
+.opt .auto { display: inline-block; font-size: .9rem; font-weight: 600; color: var(--ok); }
+label.f { display: block; font-size: .9rem; font-weight: 500; margin: 0 0 4px; }
+textarea, input[type=number] { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1.5px solid var(--rule); border-radius: 8px; padding: 9px 12px; }
+textarea { min-height: 132px; resize: vertical; line-height: 1.5; }
+textarea:focus, input[type=number]:focus { outline: none; border-color: var(--accent); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.count { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+.count.over { color: var(--neg); }
+.checks { display: grid; gap: 6px; }
+.checks label { display: flex; gap: 10px; align-items: center; font-size: .95rem; cursor: pointer; }
+.checks input { width: 18px; height: 18px; accent-color: var(--accent); }
+.checks input:disabled + span { color: var(--muted); }
+
+/* tables */
+.scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: .95rem; }
+th, td { padding: 9px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; font-size: .85rem; color: var(--muted); background: var(--surface); line-height: 1.35; vertical-align: bottom; }
+th:first-child, td:first-child { text-align: left; }
+tbody tr:last-child td { border-bottom: 0; }
+tfoot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0; }
+td.neg { color: var(--neg); }
+td.net { font-weight: 700; background: var(--net); }
+td.pname { white-space: normal; min-width: 220px; overflow-wrap: anywhere; text-align: left; }
+#rankBody + tr, table thead tr th.lft { text-align: left; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 10px; vertical-align: -1px; }
+.gap { height: 20px; }
+
+.dlbar { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; }
+.dlbar .name { color: var(--muted); font-size: .95rem; word-break: break-all; }
+.status { margin-top: 10px; font-size: .95rem; color: var(--muted); min-height: 1.6em; }
+.status.error { color: var(--neg); } .status.ok { color: var(--ok); }
+/* cut-item detail */
+.detail { margin-top: 36px; }
+.detail h3.t { font-size: 1.1rem; font-weight: 600; margin: 0 0 12px; }
+.mnav { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); box-shadow: 0 6px 14px -10px rgba(0,0,0,.35); }
+.mnav button { font: inherit; width: 42px; height: 42px; flex: none; border-radius: 10px; border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink); font-size: 1.35rem; line-height: 1; cursor: pointer; }
+.mnav button:disabled { opacity: .35; cursor: default; }
+.mnav .mid { flex: 1; text-align: center; min-width: 0; }
+.mnav .mname { font-size: 1.15rem; font-weight: 600; display: block; }
+.mnav .mstat { font-size: .9rem; color: var(--muted); display: block; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 12px 2px 4px; font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.day { margin-top: 18px; }
+.dayhead { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 6px 2px; border-bottom: 2px solid var(--ink); font-weight: 600; }
+.dayhead small { font-weight: 500; color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.item { display: grid; grid-template-columns: 54px 1fr auto; gap: 4px 14px; padding: 10px 2px; border-bottom: 1px solid var(--rule); align-items: start; }
+.item .tm { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; padding-top: 2px; }
+.item .what { min-width: 0; }
+.item .why { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; font-weight: 500; }
+.item .typ { color: var(--muted); font-size: .85rem; margin-left: 8px; }
+.item .desc { display: block; font-size: .95rem; overflow-wrap: anywhere; }
+.item .amt { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.item.wd .amt { color: var(--muted); font-weight: 500; }
+.item .amt small { display: block; font-weight: 500; font-size: .8rem; color: var(--muted); }
+.empty { padding: 28px 8px; text-align: center; color: var(--muted); }
+.togg { display: inline-flex; gap: 10px; align-items: center; margin: 2px 2px 6px; font-size: .92rem; color: var(--muted); cursor: pointer; }
+.togg input { width: 17px; height: 17px; accent-color: var(--accent); }
+@media (max-width: 520px) { .item { grid-template-columns: 1fr auto; } .item .tm { grid-column: 1 / -1; padding: 0; } .dayhead { flex-direction: column; gap: 0; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>ตัดยอดฝากจาก Statement ธนาคาร</h1>
+  <p class="lede">วางไฟล์ Excel ที่ export จากธนาคาร ตั้งค่าการตัดยอด แล้วดาวน์โหลดไฟล์ใหม่ที่มีเครื่องมือตัดรายการและสรุปยอดฝากรายเดือนพร้อมใช้ ไฟล์ของคุณประมวลผลในเบราว์เซอร์นี้เท่านั้น</p>
+
+  <section class="step" aria-labelledby="s1">
+    <h2 id="s1"><span class="n">1</span>เลือกไฟล์ Statement</h2>
+    <p class="sub">ไฟล์ .xlsx ที่มีหัวตาราง วันที่ ถอน และ ฝาก</p>
+    <div id="drop" class="drop">
+      <strong>ลากไฟล์ .xlsx มาวางที่นี่</strong>
+      <small>หรือ</small>
+      <label class="btn" for="file" tabindex="0" id="pick">เลือกไฟล์</label>
+      <input id="file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+    </div>
+    <div id="filecard" class="filecard" hidden>
+      <div><b id="fname"></b><span id="fmeta"></span></div>
+      <label class="btn ghost" for="file" tabindex="0" id="repick">เปลี่ยนไฟล์</label>
+    </div>
+    <div id="err" class="msg" role="alert" hidden></div>
+  </section>
+
+  <section class="step" id="step2" aria-labelledby="s2" hidden>
+    <h2 id="s2"><span class="n">2</span>ตั้งค่าการตัดยอด</h2>
+    <p class="sub">ค่าที่ตั้งตรงนี้จะใส่ไว้ในไฟล์ให้แล้ว และแก้ไขต่อใน Excel ได้ภายหลัง</p>
+    <div class="opts">
+      <div class="opt o1">
+        <h3><span class="mark">ตัดยอดถอน/ฝากที่ซ้ำกัน</span></h3>
+        <p>จับคู่ถอน 1 รายการกับฝาก 1 รายการที่ยอดเท่ากันในวันเดียวกัน</p>
+        <span class="auto">ทำงานอัตโนมัติ</span>
+      </div>
+      <div class="opt o2">
+        <h3><span class="mark">ตัดยอดฝากตามชื่อ</span></h3>
+        <p>ตัดยอดฝากที่รายละเอียดมีชื่อเหล่านี้ พิมพ์บางส่วนของชื่อได้</p>
+        <label class="f" for="names">ชื่อ บรรทัดละ 1 ชื่อ</label>
+        <textarea id="names" placeholder="เช่น สุภาพร"></textarea>
+        <div class="count" id="ncount">0 / 10 ชื่อ</div>
+      </div>
+      <div class="opt o3">
+        <h3><span class="mark">ตัดยอดฝากตามจำนวนเงิน</span></h3>
+        <p>เว้นว่างช่องที่ไม่ต้องการตัด</p>
+        <div class="row2">
+          <div><label class="f" for="gt">มากกว่า (บาท)</label><input id="gt" type="number" min="0" step="any" inputmode="decimal"></div>
+          <div><label class="f" for="lt">น้อยกว่า (บาท)</label><input id="lt" type="number" min="0" step="any" inputmode="decimal"></div>
+        </div>
+      </div>
+      <div class="opt o4">
+        <h3><span class="mark">ตัดยอดฝากตามประเภท/ช่องทาง</span></h3>
+        <p id="typeHelp">เลือกได้สูงสุด 3 ประเภท</p>
+        <div class="checks" id="types"></div>
+      </div>
+      <div class="opt ox">
+        <h3><span class="mark">ยกเว้นไม่ตัด</span></h3>
+        <p>รายการที่ตรงเงื่อนไขนี้จะไม่ถูกตัดในทุกตัวเลือก แม้จะเข้าเงื่อนไขอื่น</p>
+        <div class="row2">
+          <div>
+            <label class="f" for="exnames">ชื่อในรายละเอียด บรรทัดละ 1 ชื่อ</label>
+            <textarea id="exnames" placeholder="เช่น ดอกเบี้ย"></textarea>
+            <div class="count" id="excount">0 / 10 ชื่อ</div>
+          </div>
+          <div>
+            <label class="f">ประเภท/ช่องทางที่ยกเว้น</label>
+            <div class="checks" id="extypes"></div>
+            <div class="count" id="extypehelp">เลือกได้สูงสุด 3 ประเภท</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step3" aria-labelledby="s3" hidden>
+    <h2 id="s3"><span class="n">3</span>ตรวจผลแล้วดาวน์โหลด</h2>
+    <p class="sub">แถวที่ตรงหลายตัวเลือกนับในตัวเลือกแรกที่ตรงเท่านั้น ตัวเลือกแรกนับทั้งแถวถอนและแถวฝาก</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>ตัวเลือก</th><th>จำนวนแถว</th><th>ยอดฝากที่ตัด (บาท)</th></tr></thead>
+        <tbody id="sumBody"></tbody>
+        <tfoot><tr><td>รวม</td><td id="sumCnt"></td><td id="sumAmt"></td></tr></tfoot>
+      </table>
+    </div>
+    <p class="exnote" id="exnote"></p>
+    <div class="gap"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>เดือน</th><th>ยอดฝากทั้งหมด</th><th>หัก<br>ซ้ำ ถอน/ฝาก</th><th>หัก<br>ตามชื่อ</th><th>หัก<br>ตามยอดเงิน</th><th>หัก<br>ประเภท</th><th>ยอดฝากสุทธิ</th></tr></thead>
+        <tbody id="monBody"></tbody>
+        <tfoot id="monFoot"></tfoot>
+      </table>
+    </div>
+    <h3 class="subhead" id="rankhead">อันดับชื่อ/เลขบัญชี ที่มีรายการมากที่สุด</h3>
+    <p class="exnote" id="ranknote" style="margin-bottom:10px">แสดงเฉพาะชื่อหรือเลขบัญชีที่มีทั้งรายการฝากและรายการถอน นับทุกรายการในไฟล์ จับกลุ่มจากเลขบัญชีหรือชื่อในช่องรายละเอียด</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th class="lft">ชื่อ / เลขบัญชี</th><th>ฝาก<br>ครั้ง</th><th>ยอดฝาก</th><th>ถอน<br>ครั้ง</th><th>ยอดถอน</th><th>รวม<br>ครั้ง</th></tr></thead>
+        <tbody id="rankBody"></tbody>
+      </table>
+    </div>
+    <div class="dlbar" style="margin-top:14px"><button class="btn ghost" type="button" id="rankmore"></button></div>
+
+    <div class="detail" id="detail">
+      <h3 class="t">รายการที่ตัดแต่ละเดือน</h3>
+      <div class="mnav">
+        <button type="button" id="mprev" aria-label="เดือนก่อนหน้า">&#8249;</button>
+        <div class="mid" aria-live="polite"><span class="mname" id="mname"></span><span class="mstat" id="mstat"></span></div>
+        <button type="button" id="mnext" aria-label="เดือนถัดไป">&#8250;</button>
+      </div>
+      <div class="chips" id="mchips"></div>
+      <label class="togg" for="hidewd"><input type="checkbox" id="hidewd"><span>ซ่อนแถว "ถอน (คู่ของยอดฝาก)"</span></label>
+      <div id="days"></div>
+    </div>
+    <div class="dlbar">
+      <button class="btn" id="dl" type="button">ดาวน์โหลดไฟล์ Excel</button>
+      <span class="name" id="dlname"></span>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+</main>
+
+<script>
+/* ===== Core logic (parsing, calculation, workbook building) ===== */
+const TOOL = 'เครื่องมือ';
+const CUTS = 'รายการที่ตัด';
+const TQ = "'" + TOOL + "'";
+const NAMES_REF = TQ + '!$C$9:$G$10';
+const GT_REF = TQ + '!$C$13';
+const LT_REF = TQ + '!$C$14';
+const TYPES_REF = TQ + '!$C$17:$E$17';
+const EXN_REF = TQ + '!$C$20:$G$21';
+const EXT_REF = TQ + '!$C$22:$E$22';
+const COLORS = { navy: 'FF1F4E78', slate: 'FF44546A', o1: 'FFFFE699', o2: 'FFF8CBAD', o3: 'FFBDD7EE', o4: 'FFD9C3E9',
+  input: 'FFFFF2CC', hdr: 'FFD9E1F2', tot: 'FFDDEBF7', net: 'FFE2EFDA', band2: 'FFF7F9FC', white: 'FFFFFFFF', ex: 'FFEDEDED',
+  line: 'FFBFBFBF', hint: 'FF7F7F7F', blue: 'FF0000FF', green: 'FF548235' };
+const NUM = '#,##0.00;-#,##0.00;"-"';
+const NEG = '#,##0.00;[Red]-#,##0.00;"-"';
+const FONT = 'Calibri';
+
+function colLetter(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+function serial(d) { return d.getTime() / 86400000 + 25569; }
+function cellVal(v) {
+  if (v == null) return null;
+  if (v instanceof Date) return v;
+  if (typeof v === 'object') {
+    if (v.richText) return v.richText.map(t => t.text).join('');
+    if ('result' in v) return cellVal(v.result);
+    if ('text' in v) return v.text;
+    if (v.error) return null;
+    return null;
+  }
+  return v;
+}
+function toDate(v) {
+  if (v instanceof Date && !isNaN(v)) return v;
+  if (typeof v === 'number' && v > 20000 && v < 80000) return new Date(Math.round((v - 25569) * 86400000));
+  if (typeof v === 'string') {
+    const m = v.trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if (m) {
+      let y = +m[3]; if (y < 100) y += 2000; if (y > 2400) y -= 543;
+      const d = new Date(Date.UTC(y, +m[2] - 1, +m[1]));
+      if (!isNaN(d)) return d;
+    }
+  }
+  return null;
+}
+function toAmount(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+  if (typeof v === 'string') {
+    const s = v.replace(/[,\s฿]/g, '');
+    if (s !== '' && !isNaN(+s)) return +s;
+  }
+  return null;
+}
+const numOr0 = v => (typeof v === 'number' && isFinite(v) ? v : 0);
+
+/* ---------- find the transactions table in a loaded ExcelJS workbook ---------- */
+function extractTable(wb) {
+  for (const ws of wb.worksheets) {
+    const maxR = Math.min(ws.rowCount || 0, 20);
+    for (let r = 1; r <= maxR; r++) {
+      const row = ws.getRow(r);
+      const maxC = Math.min(Math.max(ws.columnCount || 0, row.cellCount || 0), 80);
+      const texts = [];
+      for (let c = 1; c <= maxC; c++) {
+        const v = cellVal(row.getCell(c).value);
+        texts[c] = v == null ? '' : String(v).trim();
+      }
+      const find = pred => { for (let c = 1; c < texts.length; c++) if (texts[c] && pred(texts[c])) return c; return -1; };
+      const w = find(t => ['ถอน', 'ถอนเงิน', 'ยอดถอน'].includes(t));
+      const d = find(t => ['ฝาก', 'ฝากเงิน', 'ยอดฝาก'].includes(t));
+      const dt = find(t => t.startsWith('วันที่'));
+      if (w < 0 || d < 0 || dt < 0) continue;
+      let lastCol = 0; for (let c = 1; c < texts.length; c++) if (texts[c]) lastCol = c;
+      const headers = texts.slice(1, lastCol + 1);
+      const cols = { dt: dt - 1, w: w - 1, d: d - 1,
+        type: find(t => t.includes('ประเภท') || t.includes('ช่องทาง')) - 1,
+        detail: find(t => t.includes('รายละเอียด')) - 1,
+        bal: find(t => t.includes('คงเหลือ')) - 1,
+        time: find(t => t.startsWith('เวลา')) - 1 };
+      const rows = [];
+      for (let rr = r + 1; rr <= ws.rowCount; rr++) {
+        const src = ws.getRow(rr); const vals = []; let any = false;
+        for (let c = 1; c <= lastCol; c++) {
+          let v = cellVal(src.getCell(c).value);
+          if (typeof v === 'string' && v.trim() === '') v = null;
+          if (v != null) any = true;
+          vals.push(v);
+        }
+        if (!any) continue;
+        const dv = toDate(vals[cols.dt]); if (dv) vals[cols.dt] = dv;
+        for (const k of ['w', 'd', 'bal']) if (cols[k] >= 0 && vals[cols[k]] != null) { const a = toAmount(vals[cols[k]]); if (a != null) vals[cols[k]] = a; }
+        rows.push(vals);
+      }
+      if (!rows.length) continue;
+      return { sheetName: ws.name, headers, cols, rows };
+    }
+  }
+  return null;
+}
+
+function allTypes(table) {
+  const out = [];
+  if (table.cols.type < 0) return out;
+  for (const row of table.rows) { const t = row[table.cols.type]; if (t != null && !out.includes(String(t))) out.push(String(t)); }
+  return out;
+}
+
+function depositTypes(table) {
+  const out = [];
+  if (table.cols.type < 0) return out;
+  for (const row of table.rows) {
+    const t = row[table.cols.type], g = row[table.cols.d];
+    if (t != null && numOr0(g) > 0 && !out.includes(String(t))) out.push(String(t));
+  }
+  return out;
+}
+
+/* ---------- replicate the workbook formulas for preview + cached results ---------- */
+function compute(table, settings) {
+  const { rows, cols } = table;
+  const names = (settings.names || []).map(s => s.trim()).filter(Boolean).slice(0, 10);
+  const types = (settings.types || []).slice(0, 3).map(s => s.toLowerCase());
+  const exNames = (settings.exNames || []).map(s => s.trim()).filter(Boolean).slice(0, 10);
+  const exTypes = (settings.exTypes || []).slice(0, 3).map(s => s.toLowerCase());
+  const gt = settings.gt, lt = settings.lt;
+  const n = rows.length;
+  const day = i => (rows[i][cols.dt] instanceof Date ? Math.floor(serial(rows[i][cols.dt])) : null);
+  const key = (dd, a) => dd + '|' + a.toFixed(2);
+  const lower = (r, c) => (c >= 0 && r[c] != null ? String(r[c]).toLowerCase() : '');
+  const X = rows.map(r => {
+    const det = lower(r, cols.detail), ty = lower(r, cols.type);
+    return (cols.detail >= 0 && exNames.some(nm => det.includes(nm.toLowerCase()))) || (!!ty && exTypes.includes(ty));
+  });
+  const wTot = new Map(), dTot = new Map(), wSeen = new Map(), dSeen = new Map();
+  const inc = (m, k) => { const v = (m.get(k) || 0) + 1; m.set(k, v); return v; };
+  for (let i = 0; i < n; i++) { const dd = day(i); if (dd == null || X[i]) continue; inc(wTot, key(dd, numOr0(rows[i][cols.w]))); inc(dTot, key(dd, numOr0(rows[i][cols.d]))); }
+  const L = [], M = [], N = [], O = [];
+  for (let i = 0; i < n; i++) {
+    const r = rows[i], g = numOr0(r[cols.d]), w = numOr0(r[cols.w]), dd = day(i);
+    let l = '';
+    if (dd != null && !X[i]) {
+      const rd = inc(dSeen, key(dd, g)), rw = inc(wSeen, key(dd, w));
+      if (g > 0) { if (rd <= (wTot.get(key(dd, g)) || 0)) l = 'ซ้ำ'; }
+      else if (w > 0) { if (rw <= (dTot.get(key(dd, w)) || 0)) l = 'ซ้ำ'; }
+    }
+    L.push(l);
+    const det = lower(r, cols.detail), ty = lower(r, cols.type);
+    M.push(!X[i] && g > 0 && cols.detail >= 0 && names.some(nm => det.includes(nm.toLowerCase())) ? 'ตรง' : '');
+    N.push(!X[i] && g > 0 && gt != null && g > gt ? 'มากกว่า' : !X[i] && g > 0 && lt != null && g < lt ? 'น้อยกว่า' : '');
+    O.push(!X[i] && g > 0 && ty && types.includes(ty) ? 'ตรงประเภท' : '');
+  }
+  const summary = [[0, 0], [0, 0], [0, 0], [0, 0]];
+  const dates = rows.map(r => r[cols.dt]).filter(d => d instanceof Date);
+  let months = [];
+  if (dates.length) {
+    const min = new Date(Math.min(...dates)), max = new Date(Math.max(...dates));
+    for (let y = min.getUTCFullYear(), m = min.getUTCMonth(); y < max.getUTCFullYear() || (y === max.getUTCFullYear() && m <= max.getUTCMonth()); m++) {
+      if (m > 11) { m = 0; y++; }
+      months.push({ y, m, total: 0, d: [0, 0, 0, 0] });
+    }
+  }
+  const mIndex = d => (months.length ? (d.getUTCFullYear() - months[0].y) * 12 + d.getUTCMonth() - months[0].m : -1);
+  for (let i = 0; i < n; i++) {
+    const r = rows[i], g = numOr0(r[cols.d]);
+    const opt = L[i] ? 0 : M[i] ? 1 : N[i] ? 2 : O[i] ? 3 : -1;
+    if (opt >= 0) { summary[opt][0]++; summary[opt][1] += g; }
+    const dt = r[cols.dt];
+    if (dt instanceof Date) {
+      const mo = months[mIndex(dt)];
+      if (mo) { mo.total += g; if (opt >= 0) mo.d[opt] += g; }
+    }
+  }
+  months.forEach(mo => { mo.net = mo.total - mo.d.reduce((a, b) => a + b, 0); });
+  const minD = dates.length ? new Date(Math.min(...dates)) : null, maxD = dates.length ? new Date(Math.max(...dates)) : null;
+  let saved = [0, 0]; const savedList = [];
+  if ((exNames.length || exTypes.length) && !settings.__noEx) {
+    const plain = compute(table, Object.assign({}, settings, { exNames: [], exTypes: [], __noEx: true }));
+    for (let i = 0; i < n; i++) {
+      if (!X[i]) continue;
+      const opt = plain.L[i] ? 0 : plain.M[i] ? 1 : plain.N[i] ? 2 : plain.O[i] ? 3 : -1;
+      if (opt < 0) continue;
+      saved[0]++; saved[1] += numOr0(rows[i][cols.d]);
+      savedList.push({ i, opt, sub: opt === 2 ? plain.N[i] : '' });
+    }
+  }
+  return { L, M, N, O, X, saved, savedList, summary, months, minD, maxD, dateCount: dates.length, names, types: (settings.types || []).slice(0, 3),
+    exNames, exTypes: (settings.exTypes || []).slice(0, 3), gt, lt };
+}
+
+/* ---------- build the formatted workbook ---------- */
+function buildWorkbook(ExcelJS, table, settings) {
+  const res = compute(table, settings);
+  const { rows, cols, headers } = table;
+  const wb = new ExcelJS.Workbook();
+  wb.calcProperties = Object.assign(wb.calcProperties || {}, { fullCalcOnLoad: true });
+  const tw = wb.addWorksheet(TOOL, { properties: { tabColor: { argb: COLORS.navy } }, views: [{ showGridLines: false }] });
+  const cw = wb.addWorksheet(CUTS, { views: [{ state: 'frozen', ySplit: 1 }] });
+  const ws = wb.addWorksheet('Transactions', { views: [{ state: 'frozen', ySplit: 1 }] });
+
+  const font = (o = {}) => Object.assign({ name: FONT, size: 12 }, o, o.color ? { color: { argb: o.color } } : {});
+  const solid = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+  const side = (style = 'thin', argb = COLORS.line) => ({ style, color: { argb } });
+  const box = { top: side(), left: side(), bottom: side(), right: side() };
+
+  /* ===== Transactions ===== */
+  const last = rows.length + 1;
+  const nCols = headers.length;
+  const hc = { L: nCols + 1, M: nCols + 2, N: nCols + 3, O: nCols + 4, P: nCols + 5 };
+  const HL = colLetter(hc.L), HM = colLetter(hc.M), HN = colLetter(hc.N), HO = colLetter(hc.O), HP = colLetter(hc.P);
+  const A = colLetter(cols.dt + 1), F = colLetter(cols.w + 1), G = colLetter(cols.d + 1);
+  const E = cols.detail >= 0 ? colLetter(cols.detail + 1) : null, C = cols.type >= 0 ? colLetter(cols.type + 1) : null;
+
+  const allHeaders = headers.concat(['ตัวเลือก 1\nซ้ำ ถอน/ฝาก', 'ตัวเลือก 2\nตรงชื่อ', 'ตัวเลือก 3\nตามยอดเงิน', 'ตัวเลือก 4\nประเภท/ช่องทาง', 'ยกเว้น\nไม่ตัด']);
+  allHeaders.forEach((h, i) => {
+    const c = ws.getCell(1, i + 1); c.value = h;
+    c.font = font({ bold: true, color: 'FFFFFFFF' });
+    c.fill = solid(i >= nCols ? COLORS.slate : COLORS.navy);
+    c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  });
+  ws.getRow(1).height = 36;
+  const widthFor = h => (/วันที่/.test(h) ? 12 : /เวลา/.test(h) ? 8 : /ประเภท|ช่องทาง/.test(h) ? 24 : /อ้างอิง/.test(h) ? 14
+    : /รายละเอียด/.test(h) ? 58 : /ถอน|ฝาก|คงเหลือ/.test(h) ? 14 : /ธนาคาร/.test(h) ? 22 : /สถานะ/.test(h) ? 13 : 12);
+  headers.forEach((h, i) => { ws.getColumn(i + 1).width = widthFor(h); });
+  [14, 13, 14, 16, 13].forEach((w, i) => { ws.getColumn(nCols + 1 + i).width = w; });
+  const centerCols = new Set(headers.map((h, i) => (/วันที่|เวลา|สถานะ/.test(h) ? i : -1)).filter(i => i >= 0));
+  const amountCols = new Set([cols.w, cols.d, cols.bal].filter(i => i >= 0));
+
+  const day = (rng, r) => `${rng},">="&INT(${A}${r}),${rng},"<"&INT(${A}${r})+1`;
+  rows.forEach((vals, idx) => {
+    const r = idx + 2;
+    vals.forEach((v, i) => {
+      if (v == null) return;
+      const c = ws.getCell(r, i + 1); c.value = v;
+      if (i === cols.dt && v instanceof Date) c.numFmt = 'dd/mm/yyyy';
+      if (amountCols.has(i) && typeof v === 'number') c.numFmt = NUM;
+      if (centerCols.has(i)) c.alignment = { horizontal: 'center' };
+    });
+    const part = `$${A}$2:${A}${r}`, full = `$${A}$2:$${A}$${last}`;
+    const exPart = `,$${HP}$2:${HP}${r},""`, exFull = `,$${HP}$2:$${HP}$${last},""`;
+    const depRank = `COUNTIFS(${day(part, r)},$${G}$2:${G}${r},${G}${r}${exPart})`;
+    const wdCnt = `COUNTIFS(${day(full, r)},$${F}$2:$${F}$${last},${G}${r}${exFull})`;
+    const wdRank = `COUNTIFS(${day(part, r)},$${F}$2:${F}${r},${F}${r}${exPart})`;
+    const depCnt = `COUNTIFS(${day(full, r)},$${G}$2:$${G}$${last},${F}${r}${exFull})`;
+    const exName = E ? `SUMPRODUCT(ISNUMBER(SEARCH(${EXN_REF},${E}${r}))*(${EXN_REF}<>""))>0` : 'FALSE';
+    const exType = C ? `AND(${C}${r}<>"",COUNTIF(${EXT_REF},${C}${r})>0)` : 'FALSE';
+    const notEx = `${HP}${r}=""`;
+    const f = {
+      L: `IF(OR(NOT(ISNUMBER(${A}${r})),${HP}${r}<>""),"",IF(${G}${r}>0,IF(${depRank}<=${wdCnt},"ซ้ำ",""),IF(${F}${r}>0,IF(${wdRank}<=${depCnt},"ซ้ำ",""),"")))`,
+      M: E ? `IF(OR(${G}${r}<=0,${HP}${r}<>""),"",IF(SUMPRODUCT(ISNUMBER(SEARCH(${NAMES_REF},${E}${r}))*(${NAMES_REF}<>""))>0,"ตรง",""))` : '""',
+      N: `IF(OR(${G}${r}<=0,${HP}${r}<>""),"",IF(AND(ISNUMBER(${GT_REF}),${G}${r}>${GT_REF}),"มากกว่า",IF(AND(ISNUMBER(${LT_REF}),${G}${r}<${LT_REF}),"น้อยกว่า","")))`,
+      O: C ? `IF(OR(${G}${r}<=0,${C}${r}="",${HP}${r}<>""),"",IF(COUNTIF(${TYPES_REF},${C}${r})>0,"ตรงประเภท",""))` : '""',
+      P: `IF(OR(${exName},${exType}),"ยกเว้น","")`,
+    };
+    for (const k of ['L', 'M', 'N', 'O', 'P']) {
+      const c = ws.getCell(r, hc[k]);
+      const result = k === 'P' ? (res.X[idx] ? 'ยกเว้น' : '') : res[k][idx];
+      c.value = result ? { formula: f[k], result } : { formula: f[k] };
+      c.alignment = { horizontal: 'center' };
+    }
+  });
+  const cfRef = `A2:${HP}${last}`;
+  const cfFill = argb => ({ fill: { type: 'pattern', pattern: 'solid', bgColor: { argb } } });
+  ws.addConditionalFormatting({ ref: cfRef, rules: [
+    { type: 'expression', priority: 1, stopIfTrue: true, formulae: [`$${HL}2="ซ้ำ"`], style: cfFill(COLORS.o1) },
+    { type: 'expression', priority: 2, stopIfTrue: true, formulae: [`$${HM}2="ตรง"`], style: cfFill(COLORS.o2) },
+    { type: 'expression', priority: 3, stopIfTrue: true, formulae: [`$${HN}2<>""`], style: cfFill(COLORS.o3) },
+    { type: 'expression', priority: 4, stopIfTrue: true, formulae: [`$${HO}2<>""`], style: cfFill(COLORS.o4) },
+    { type: 'expression', priority: 5, formulae: [`$${HP}2<>""`], style: cfFill(COLORS.ex) },
+  ] });
+  ws.autoFilter = `A1:${HP}${last}`;
+
+  /* ===== Cut list sheet ===== */
+  const TH_MONTH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  const OPT_LABEL = ['ตัวเลือก 1: ซ้ำ ถอน/ฝาก', 'ตัวเลือก 2: ตรงชื่อ', 'ตัวเลือก 3: ตามยอดเงิน', 'ตัวเลือก 4: ประเภท/ช่องทาง'];
+  const OPT_FILL = [COLORS.o1, COLORS.o2, COLORS.o3, COLORS.o4];
+  const cutHeads = [['แถวในชีต Transactions', 16], ['เดือน', 16], ['วันที่', 12], ['เวลา', 9], ['สถานะ', 26],
+    ['ประเภท/ช่องทาง', 22], ['รายละเอียด', 58], ['ยอดฝากที่ตัด', 15], ['ยอดฝากที่ยกเว้น', 16]];
+  cutHeads.forEach(([h, w], i) => {
+    const cc = cw.getCell(1, i + 1); cc.value = h;
+    cc.font = font({ bold: true, color: 'FFFFFFFF' }); cc.fill = solid(COLORS.navy);
+    cc.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cw.getColumn(i + 1).width = w;
+  });
+  cw.getRow(1).height = 32;
+  const cutItems = [];
+  rows.forEach((r0, idx) => {
+    const g = typeof r0[cols.d] === 'number' ? r0[cols.d] : 0;
+    if (g <= 0) return;                      // ยอดฝากเท่านั้น
+    const opt = res.L[idx] ? 0 : res.M[idx] ? 1 : res.N[idx] ? 2 : res.O[idx] ? 3 : -1;
+    if (opt < 0) return;
+    cutItems.push({ i: idx, opt, sub: opt === 2 ? res.N[idx] : '', ex: false, amt: g });
+  });
+  (res.savedList || []).forEach(sv => {
+    const g = typeof rows[sv.i][cols.d] === 'number' ? rows[sv.i][cols.d] : 0;
+    if (g > 0) cutItems.push({ i: sv.i, opt: sv.opt, sub: sv.sub, ex: true, amt: g });
+  });
+  cutItems.sort((a, b) => a.i - b.i);
+  let cr = 1, cutD = 0, cutX = 0;
+  cutItems.forEach(it => {
+    cr++;
+    const r0 = rows[it.i], d0 = r0[cols.dt];
+    const why = it.ex ? 'ยกเว้นไม่ตัด (' + OPT_LABEL[it.opt].replace(':', ' -') + ')'
+      : OPT_LABEL[it.opt] + (it.sub ? ' (' + it.sub + ')' : '');
+    if (it.ex) cutX += it.amt; else cutD += it.amt;
+    const vals = [it.i + 2, d0 instanceof Date ? TH_MONTH[d0.getUTCMonth()] + ' ' + d0.getUTCFullYear() : '',
+      d0 instanceof Date ? d0 : null, cols.time >= 0 ? r0[cols.time] : null, why,
+      cols.type >= 0 ? r0[cols.type] : null, cols.detail >= 0 ? r0[cols.detail] : null,
+      it.ex ? null : it.amt, it.ex ? it.amt : null];
+    vals.forEach((v, i) => {
+      const cc = cw.getCell(cr, i + 1);
+      if (v != null) cc.value = v;
+      cc.font = font();
+      if (i === 2 && v instanceof Date) { cc.numFmt = 'dd/mm/yyyy'; cc.alignment = { horizontal: 'center' }; }
+      if (i === 0 || i === 3) cc.alignment = { horizontal: 'center' };
+      if (i === 7 || i === 8) cc.numFmt = NUM;
+      if (i === 4) { cc.fill = solid(it.ex ? COLORS.ex : OPT_FILL[it.opt]); cc.alignment = { wrapText: true, vertical: 'middle' }; }
+    });
+  });
+  if (cr === 1) {
+    cw.getCell(2, 1).value = 'ไม่มียอดฝากที่ถูกตัดตามค่าที่ตั้งไว้'; cw.getCell(2, 1).font = font({ italic: true, color: COLORS.hint });
+  } else {
+    const tr0 = cr + 1;
+    cw.getCell(tr0, 7).value = 'รวม';
+    cw.getCell(tr0, 8).value = { formula: `SUM(H2:H${cr})`, result: cutD };
+    cw.getCell(tr0, 9).value = { formula: `SUM(I2:I${cr})`, result: cutX };
+    for (const i of [7, 8, 9]) {
+      const cc = cw.getCell(tr0, i);
+      cc.font = font({ bold: true }); cc.fill = solid(COLORS.tot);
+      if (i > 7) cc.numFmt = NUM;
+    }
+    cw.autoFilter = `A1:I${cr}`;
+  }
+
+  /* ===== Tool sheet ===== */
+  const T = (a, v, o = {}) => { const c = tw.getCell(a); if (v !== undefined) c.value = v; if (o.font) c.font = font(o.font); if (o.fill) c.fill = solid(o.fill);
+    if (o.align) c.alignment = o.align; if (o.border) c.border = o.border; if (o.numFmt) c.numFmt = o.numFmt; return c; };
+  const rng = col => `Transactions!$${col}$2:$${col}$${last}`;
+  const TA = rng(A), TG = rng(G), TL = rng(HL), TM = rng(HM), TN = rng(HN), TO = rng(HO), TP = rng(HP);
+  [2, 38, 17, 17, 17, 17, 17, 17, 2].forEach((w, i) => { tw.getColumn(i + 1).width = w; });
+  const band = (row, text) => { for (const col of 'BCDEFGH') T(col + row, undefined, { fill: COLORS.navy });
+    T('B' + row, text, { font: { size: 13, bold: true, color: 'FFFFFFFF' }, align: { vertical: 'middle', indent: 1 } }); tw.getRow(row).height = 24; };
+  const hint = (a, text) => T(a, text, { font: { size: 11, italic: true, color: COLORS.hint }, align: { vertical: 'middle' } });
+  const label = (a, text, bold = false, indent = 0) => T(a, text, { font: { bold }, align: { vertical: 'middle', indent } });
+  const inp = (a, v, numFmt) => T(a, v == null || v === '' ? undefined : v, { fill: COLORS.input, border: box, font: { color: COLORS.blue },
+    align: { horizontal: 'center', vertical: 'middle' }, numFmt });
+  const header = (row, pairs, h = 30) => { pairs.forEach(([col, t]) => T(col + row, t, { font: { bold: true, color: COLORS.navy }, fill: COLORS.hdr, border: box,
+    align: { horizontal: 'center', vertical: 'middle', wrapText: true } })); tw.getRow(row).height = h; };
+  const F2 = (formula, result) => (result === undefined ? { formula } : { formula, result });
+  const dmy = d => d ? `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}` : '';
+
+  T('B2', 'สรุปยอดฝาก & เครื่องมือตัดรายการ Statement', { font: { size: 18, bold: true, color: COLORS.navy } });
+  T('B3', F2(`"ข้อมูลวันที่ "&DAY(MIN(${TA}))&"/"&MONTH(MIN(${TA}))&"/"&YEAR(MIN(${TA}))&" ถึง "&DAY(MAX(${TA}))&"/"&MONTH(MAX(${TA}))&"/"&YEAR(MAX(${TA}))&"   |   ทั้งหมด "&COUNT(${TA})&" รายการ   |   ช่องสีเหลือง = ช่องให้กรอก"`,
+    `ข้อมูลวันที่ ${dmy(res.minD)} ถึง ${dmy(res.maxD)}   |   ทั้งหมด ${res.dateCount} รายการ   |   ช่องสีเหลือง = ช่องให้กรอก`), { font: { size: 11, color: COLORS.hint } });
+
+  band(5, '1)  ตั้งค่าการตัดรายการ');
+  label('B6', 'ตัวเลือก 1: ตัดยอดถอน/ฝากที่ซ้ำกัน', true);
+  T('C6', 'ทำงานอัตโนมัติ', { font: { bold: true, color: COLORS.green } });
+  hint('D6', 'จับคู่ถอน 1 รายการ กับฝาก 1 รายการ ที่ยอดเท่ากันในวันเดียวกัน');
+
+  label('B8', 'ตัวเลือก 2: ชื่อที่ต้องการตัดยอดฝาก', true);
+  hint('C8', E ? 'ค้นหาในรายละเอียด (Column ' + E + ') พิมพ์บางส่วนของชื่อได้ ใส่ได้สูงสุด 10 ชื่อ' : 'ไม่พบคอลัมน์รายละเอียดในไฟล์ ตัวเลือกนี้จึงไม่ทำงาน');
+  label('B9', 'ชื่อที่ 1 – 5', false, 2); label('B10', 'ชื่อที่ 6 – 10', false, 2);
+  'CDEFG'.split('').forEach((col, i) => { inp(col + '9', res.names[i]); inp(col + '10', res.names[i + 5]); });
+  tw.getRow(9).height = 20; tw.getRow(10).height = 20;
+
+  label('B12', 'ตัวเลือก 3: ตัดยอดฝากตามจำนวนเงิน', true);
+  label('B13', 'ตัดยอดฝากที่ มากกว่า (บาท)', false, 2); inp('C13', res.gt, '#,##0.00'); hint('D13', '← เว้นว่าง = ไม่ตัด');
+  label('B14', 'ตัดยอดฝากที่ น้อยกว่า (บาท)', false, 2); inp('C14', res.lt, '#,##0.00'); hint('D14', '← เว้นว่าง = ไม่ตัด');
+  for (const a of ['C13', 'C14']) tw.getCell(a).dataValidation = { type: 'decimal', operator: 'greaterThanOrEqual', allowBlank: true,
+    showErrorMessage: true, errorTitle: 'ตัวเลขไม่ถูกต้อง', error: 'กรุณาใส่ตัวเลขตั้งแต่ 0 ขึ้นไป', formulae: [0] };
+
+  label('B16', 'ตัวเลือก 4: ตัดยอดฝากตามประเภท/ช่องทาง', true);
+  hint('C16', C ? 'เลือกจากรายการ Column ' + C + ' (ประเภท/ช่องทาง) ได้สูงสุด 3 ประเภท' : 'ไม่พบคอลัมน์ประเภท/ช่องทางในไฟล์ ตัวเลือกนี้จึงไม่ทำงาน');
+  label('B17', 'ประเภท/ช่องทาง', false, 2);
+  let list = []; let len = 2;
+  for (const t of depositTypes(table)) { const t2 = t.replace(/[",]/g, ' '); if (len + t2.length + 1 > 250) break; list.push(t2); len += t2.length + 1; }
+  'CDE'.split('').forEach((col, i) => {
+    inp(col + '17', res.types[i]);
+    if (list.length) tw.getCell(col + '17').dataValidation = { type: 'list', allowBlank: true, showErrorMessage: false, formulae: ['"' + list.join(',') + '"'] };
+  });
+  tw.getRow(17).height = 20;
+
+  label('B19', 'ยกเว้น: ไม่ตัดรายการเหล่านี้ (ทุกตัวเลือก)', true);
+  hint('C19', 'ใส่ชื่อในรายละเอียด หรือเลือกประเภท/ช่องทางที่ไม่ต้องการให้ถูกตัด');
+  label('B20', 'ชื่อยกเว้นที่ 1 – 5', false, 2); label('B21', 'ชื่อยกเว้นที่ 6 – 10', false, 2);
+  'CDEFG'.split('').forEach((col, i) => { inp(col + '20', res.exNames[i]); inp(col + '21', res.exNames[i + 5]); });
+  label('B22', 'ประเภท/ช่องทางที่ยกเว้น', false, 2);
+  let exList = []; let exLen = 2;
+  for (const t of depositTypes(table)) { const t2 = t.replace(/[",]/g, ' '); if (exLen + t2.length + 1 > 250) break; exList.push(t2); exLen += t2.length + 1; }
+  'CDE'.split('').forEach((col, i) => {
+    inp(col + '22', res.exTypes[i]);
+    if (exList.length) tw.getCell(col + '22').dataValidation = { type: 'list', allowBlank: true, showErrorMessage: false, formulae: ['"' + exList.join(',') + '"'] };
+  });
+  [20, 21, 22].forEach(rr => { tw.getRow(rr).height = 20; });
+
+  band(24, '2)  สรุปรายการที่ถูกตัด');
+  header(25, [['B', 'ตัวเลือก'], ['C', 'จำนวนแถว'], ['D', 'ยอดฝากที่ตัด (บาท)'], ['E', 'สีในชีต Transactions']]);
+  const sumRows = [
+    ['ตัวเลือก 1: ซ้ำ ถอน/ฝาก', `COUNTIF(${TL},"ซ้ำ")`, `SUMIFS(${TG},${TL},"ซ้ำ")`, COLORS.o1, 'สีเหลือง'],
+    ['ตัวเลือก 2: ตรงชื่อ', `COUNTIFS(${TM},"ตรง",${TL},"<>ซ้ำ")`, `SUMIFS(${TG},${TM},"ตรง",${TL},"<>ซ้ำ")`, COLORS.o2, 'สีส้ม'],
+    ['ตัวเลือก 3: ตามยอดเงิน', `COUNTIFS(${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง")`, `SUMIFS(${TG},${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง")`, COLORS.o3, 'สีฟ้า'],
+    ['ตัวเลือก 4: ประเภท/ช่องทาง', `COUNTIFS(${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},"")`, `SUMIFS(${TG},${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},"")`, COLORS.o4, 'สีม่วง'],
+  ];
+  sumRows.forEach(([name, cnt, amt, color, cname], i) => {
+    const r = 26 + i;
+    T('B' + r, name, { font: {}, border: box, align: { indent: 1 } });
+    T('C' + r, F2(cnt, res.summary[i][0]), { font: {}, border: box, align: { horizontal: 'center' }, numFmt: '#,##0;-#,##0;"-"' });
+    T('D' + r, F2(amt, res.summary[i][1]), { font: {}, border: box, numFmt: NUM });
+    T('E' + r, cname, { font: {}, border: box, fill: color, align: { horizontal: 'center' } });
+  });
+  const totCnt = res.summary.reduce((a, s) => a + s[0], 0), totAmt = res.summary.reduce((a, s) => a + s[1], 0);
+  T('B30', 'รวม', { font: { bold: true }, fill: COLORS.tot, border: box, align: { indent: 1 } });
+  T('C30', F2('SUM(C26:C29)', totCnt), { font: { bold: true }, fill: COLORS.tot, border: box, align: { horizontal: 'center' }, numFmt: '#,##0' });
+  T('D30', F2('SUM(D26:D29)', totAmt), { font: { bold: true }, fill: COLORS.tot, border: box, numFmt: NUM });
+  T('B31', 'ยกเว้นไม่ตัด', { font: {}, border: box, align: { indent: 1 } });
+  T('C31', F2(`COUNTIF(${TP},"ยกเว้น")`, res.X.filter(Boolean).length), { font: {}, border: box, align: { horizontal: 'center' }, numFmt: '#,##0;-#,##0;"-"' });
+  T('D31', F2(`SUMIFS(${TG},${TP},"ยกเว้น")`, rows.reduce((a, r0, i0) => a + (res.X[i0] ? numOr0(r0[cols.d]) : 0), 0)), { font: {}, border: box, numFmt: NUM });
+  T('E31', 'สีเทา', { font: {}, border: box, fill: COLORS.ex, align: { horizontal: 'center' } });
+  hint('B32', '* ตัวเลือก 1 นับทั้งแถวถอนและแถวฝาก  |  แถวที่ตรงหลายตัวเลือก นับในตัวเลือกแรกที่ตรงเท่านั้น  |  แถวที่ยกเว้นจะไม่ถูกตัดทุกกรณี');
+
+  band(34, '3)  ยอดฝากรายเดือน (หักรายการที่ตัดออก)');
+  header(35, [['B', 'เดือน'], ['C', 'ยอดฝากทั้งหมด'], ['D', 'หัก ตัวเลือก 1\nซ้ำ ถอน/ฝาก'], ['E', 'หัก ตัวเลือก 2\nตรงชื่อ'],
+    ['F', 'หัก ตัวเลือก 3\nตามยอดเงิน'], ['G', 'หัก ตัวเลือก 4\nประเภท/ช่องทาง'], ['H', 'ยอดฝากสุทธิ']], 36);
+  const START = 36;
+  res.months.forEach((mo, i) => {
+    const r = START + i;
+    const mSerial = Date.UTC(mo.y, mo.m, 1) / 86400000 + 25569;
+    const bg = i % 2 ? COLORS.band2 : COLORS.white;
+    const base = { border: box, fill: bg, font: {} };
+    T('B' + r, F2(i === 0 ? `DATE(YEAR(MIN(${TA})),MONTH(MIN(${TA})),1)` : `DATE(YEAR(B${r - 1}),MONTH(B${r - 1})+1,1)`, mSerial),
+      Object.assign({}, base, { numFmt: '[$-41E]mmmm yyyy', align: { horizontal: 'left', indent: 1 } }));
+    const m = `${TA},">="&$B${r},${TA},"<"&DATE(YEAR($B${r}),MONTH($B${r})+1,1)`;
+    T('C' + r, F2(`SUMIFS(${TG},${m})`, mo.total), Object.assign({}, base, { numFmt: NUM }));
+    T('D' + r, F2(`-SUMIFS(${TG},${m},${TL},"ซ้ำ")`, -mo.d[0]), Object.assign({}, base, { numFmt: NEG }));
+    T('E' + r, F2(`-SUMIFS(${TG},${m},${TM},"ตรง",${TL},"<>ซ้ำ")`, -mo.d[1]), Object.assign({}, base, { numFmt: NEG }));
+    T('F' + r, F2(`-SUMIFS(${TG},${m},${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง")`, -mo.d[2]), Object.assign({}, base, { numFmt: NEG }));
+    T('G' + r, F2(`-SUMIFS(${TG},${m},${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},"")`, -mo.d[3]), Object.assign({}, base, { numFmt: NEG }));
+    T('H' + r, F2(`SUM(C${r}:G${r})`, mo.net), { border: box, fill: COLORS.net, font: { bold: true }, numFmt: NUM });
+    tw.getRow(r).height = 20;
+  });
+  const TR = START + Math.max(res.months.length, 1);
+  const totBorder = { left: side(), right: side(), top: side('medium', COLORS.navy), bottom: side('medium', COLORS.navy) };
+  T('B' + TR, 'รวมทั้งหมด', { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: totBorder, align: { indent: 1 } });
+  const sumOf = f => res.months.reduce((a, mo) => a + f(mo), 0);
+  const totals = { C: sumOf(m => m.total), D: -sumOf(m => m.d[0]), E: -sumOf(m => m.d[1]), F: -sumOf(m => m.d[2]), G: -sumOf(m => m.d[3]), H: sumOf(m => m.net) };
+  for (const col of 'CDEFGH') T(col + TR, F2(`SUM(${col}${START}:${col}${TR - 1})`, totals[col]),
+    { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: totBorder, numFmt: 'DEFG'.includes(col) ? NEG : NUM });
+  tw.getRow(TR).height = 22;
+
+  let r = TR + 2;
+  band(r, '4)  วิธีลบรายการจริง และหมายเหตุ');
+  [
+    `1.  ไปที่ชีต Transactions กดปุ่มตัวกรองที่หัว Column ${HL} (ตัวเลือก 1) แล้วเลือก "ซ้ำ"`,
+    '2.  ตรวจรายการที่ไฮไลต์ เลือกแถวที่เห็นทั้งหมด (ไม่รวมหัวตาราง) > คลิกขวา > Delete Row > Clear Filter',
+    `3.  ทำซ้ำกับ Column ${HM} (เลือก "ตรง"), Column ${HN} (เลือก "มากกว่า" / "น้อยกว่า") และ Column ${HO} (เลือก "ตรงประเภท")`,
+    `•  Column ${HP} = "ยกเว้น" คือแถวที่ตั้งค่าไว้ไม่ให้ตัด แถวเหล่านี้จะไม่ถูกเลือกในทุกตัวเลือก`,
+    '•  หลังลบแถวจริง ยอดฝากสุทธิจะเท่าเดิม และช่อง "หัก" จะกลายเป็น 0',
+    '•  คอลัมน์คงเหลือเป็นตัวเลขจากธนาคาร จะไม่คำนวณใหม่หลังลบแถว  |  ควรสำรองไฟล์ก่อนลบ',
+    `•  ชีต "${CUTS}" คือรายการทั้งหมดที่ถูกตัด ตามค่าที่ตั้งไว้ตอนสร้างไฟล์ ถ้าแก้ค่าในชีตนี้ ให้ดูผลใหม่จาก Column ${HL}-${HO} ในชีต Transactions`,
+  ].forEach(t => { r++; label('B' + r, t, false, 1); });
+
+  Object.assign(tw.pageSetup || (tw.pageSetup = {}), { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 });
+  wb.views = [{ x: 0, y: 0, width: 20000, height: 12000, firstSheet: 0, activeTab: 0, visibility: 'visible' }];
+  return { wb, res };
+}
+
+if (typeof module !== 'undefined') module.exports = { extractTable, compute, buildWorkbook, depositTypes, allTypes, colLetter };
+
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const fmt = n => (Math.abs(n) < 0.005 ? '-' : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const fmtInt = n => (n ? n.toLocaleString('en-US') : '-');
+  const dmy = d => `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`;
+  let table = null, fileBase = 'Statement', timer = null, lastRes = null, monthIdx = 0;
+  const TH_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const OPT = [['ซ้ำ ถอน/ฝาก', '--hl1'], ['ตามชื่อ', '--hl2'], ['ตามยอดเงิน', '--hl3'], ['ประเภท/ช่องทาง', '--hl4']];
+  const pad = n => String(n).padStart(2, '0');
+  const TITLES = /^(นาย|นางสาว|น\.ส\.|นาง|ด\.ช\.|ด\.ญ\.|บจก\.|บมจ\.|หจก\.|บริษัท|ห้างหุ้นส่วน|MR\.?|MRS\.?|MISS|MS\.?)\s*/i;
+  function party(detail) {
+    const raw = String(detail == null ? '' : detail).replace(/\s+/g, ' ').trim();
+    if (!raw) return null;
+    const acct = (raw.match(/\b(?:X[0-9]{3,}|EXT[0-9]{6,}|[0-9]{10,})\b/) || [])[0] || '';
+    let name = raw;
+    if (acct) name = raw.slice(raw.indexOf(acct) + acct.length);
+    else { const m = raw.match(/(?:จาก|โอนไป|ไปยัง|ชำระ\s*Ref)\s+(.*)$/); if (m) name = m[1]; }
+    name = name.replace(/\++/g, ' ').replace(/\b(QR\s*Payment|Payment|เงินโอน|เคชัน)\b/gi, ' ')
+      .replace(/[()\[\]\/,:;|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const bare = name.replace(TITLES, '').trim();
+    const key = acct ? 'A:' + acct : 'N:' + (bare || raw).toLowerCase().replace(/\s/g, '').slice(0, 40);
+    let text = bare ? name : raw;
+    if (text.length > 52) text = text.slice(0, 52).trim() + '…';
+    const label = text + (acct ? ' (' + acct + ')' : '');
+    return { key, label };
+  }
+  let ranking = [], rankAll = false;
+  function buildRanking() {
+    const { rows, cols } = table;
+    const map = new Map();
+    rows.forEach(r => {
+      const p = cols.detail >= 0 ? party(r[cols.detail]) : null;
+      if (!p) return;
+      const g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0;
+      if (g <= 0 && w <= 0) return;
+      let e = map.get(p.key);
+      if (!e) { e = { label: p.label, dc: 0, ds: 0, wc: 0, ws: 0 }; map.set(p.key, e); }
+      if (g > 0) { e.dc++; e.ds += g; } else { e.wc++; e.ws += w; }
+    });
+    ranking = [...map.values()].filter(e => e.dc > 0 && e.wc > 0).sort((a, b) => (b.dc + b.wc) - (a.dc + a.wc) || (b.ds + b.ws) - (a.ds + a.ws));
+    rankAll = false;
+    renderRanking();
+  }
+  function renderRanking() {
+    const body = $('rankBody'); body.textContent = '';
+    if (!ranking.length) {
+      $('rankhead').hidden = false; $('ranknote').hidden = false; $('rankmore').hidden = true;
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 7; td.className = 'pname'; td.textContent = 'ไม่มีชื่อหรือเลขบัญชีที่มีทั้งฝากและถอนในไฟล์นี้';
+      tr.append(td); body.append(tr); return;
+    }
+    $('rankhead').hidden = false; $('ranknote').hidden = false;
+    const list = rankAll ? ranking : ranking.slice(0, 20);
+    list.forEach((e, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i + 1}</td><td class="pname"></td><td>${fmtInt(e.dc)}</td><td>${fmt(e.ds)}</td>` +
+        `<td>${fmtInt(e.wc)}</td><td>${fmt(e.ws)}</td><td><b>${fmtInt(e.dc + e.wc)}</b></td>`;
+      tr.querySelector('.pname').textContent = e.label;
+      body.append(tr);
+    });
+    const more = $('rankmore');
+    more.hidden = ranking.length <= 20;
+    more.textContent = rankAll ? 'แสดงเฉพาะ 20 อันดับแรก' : `แสดงทั้งหมด ${fmtInt(ranking.length)} รายชื่อ`;
+  }
+  function timeText(v) {
+    if (v == null) return '';
+    if (v instanceof Date) return pad(v.getUTCHours()) + ':' + pad(v.getUTCMinutes());
+    if (typeof v === 'number' && v >= 0 && v < 1) { const m = Math.round(v * 1440); return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+    return String(v).slice(0, 5);
+  }
+
+  function ensureExcelJS() {
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      s.onload = () => (window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error('load')));
+      s.onerror = () => reject(new Error('load'));
+      document.head.appendChild(s);
+    });
+  }
+  let dlCap = null;
+  const dlPromise = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
+  dlPromise.then(cap => { dlCap = cap; });
+
+  function showError(text) { const e = $('err'); e.textContent = text; e.hidden = !text; }
+  function setStatus(text, kind) { const s = $('status'); s.textContent = text || ''; s.className = 'status' + (kind ? ' ' + kind : ''); }
+
+  async function handleFile(file) {
+    if (!file) return;
+    showError(''); setStatus('');
+    if (/\.xls$/i.test(file.name)) { showError('ไฟล์ .xls รุ่นเก่ายังอ่านไม่ได้ เปิดไฟล์ใน Excel แล้วบันทึกเป็น .xlsx ก่อน'); return; }
+    let XL;
+    try { XL = await ensureExcelJS(); } catch (e) { showError('โหลดตัวอ่านไฟล์ Excel ไม่สำเร็จ ตรวจการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้านี้'); return; }
+    try {
+      const wb = new XL.Workbook();
+      await wb.xlsx.load(await file.arrayBuffer());
+      const t = extractTable(wb);
+      if (!t) { showError('ไม่พบหัวตาราง วันที่ ถอน และ ฝาก ในไฟล์นี้ ตรวจว่าเป็นไฟล์ Statement ที่ export จากธนาคาร'); return; }
+      table = t;
+      fileBase = file.name.replace(/\.xlsx$/i, '');
+    } catch (e) {
+      showError('อ่านไฟล์นี้ไม่ได้ ไฟล์อาจเสียหายหรือมีรหัสผ่าน ลองเปิดใน Excel แล้วบันทึกเป็น .xlsx ใหม่');
+      return;
+    }
+    const dates = table.rows.map(r => r[table.cols.dt]).filter(d => d instanceof Date);
+    $('fname').textContent = file.name;
+    $('fmeta').textContent = `ชีต ${table.sheetName}, ${table.rows.length.toLocaleString('en-US')} รายการ` +
+      (dates.length ? `, ${dmy(new Date(Math.min(...dates)))} ถึง ${dmy(new Date(Math.max(...dates)))}` : '');
+    $('drop').hidden = true; $('filecard').hidden = false;
+    buildTypeList();
+    buildRanking();
+    $('step2').hidden = false; $('step3').hidden = false;
+    $('dlname').textContent = fileBase + '_Cleanup.xlsx';
+    monthIdx = 0;
+    update();
+  }
+
+  function fillChecks(boxId, list, preset) {
+    const box = $(boxId); box.textContent = '';
+    list.forEach(t => {
+      const lab = document.createElement('label');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = t; cb.checked = t === preset;
+      const sp = document.createElement('span'); sp.textContent = t;
+      lab.append(cb, sp); box.append(lab);
+    });
+    box.onchange = () => { limitChecks(boxId); update(); };
+    limitChecks(boxId);
+  }
+  function buildTypeList() {
+    const types = depositTypes(table);
+    if (table.cols.type < 0 || !types.length) {
+      $('typeHelp').textContent = 'ไม่พบคอลัมน์ประเภท/ช่องทางในไฟล์นี้';
+      $('extypehelp').textContent = 'ไม่พบคอลัมน์ประเภท/ช่องทางในไฟล์นี้';
+      $('types').textContent = ''; $('extypes').textContent = '';
+      return;
+    }
+    $('typeHelp').textContent = 'เลือกได้สูงสุด 3 ประเภท';
+    $('extypehelp').textContent = 'เลือกได้สูงสุด 3 ประเภท';
+    fillChecks('types', types, 'ฝากเงินสด');
+    fillChecks('extypes', types, null);
+  }
+  function limitChecks(boxId) {
+    const cbs = [...$(boxId).querySelectorAll('input')];
+    const n = cbs.filter(c => c.checked).length;
+    cbs.forEach(c => { c.disabled = !c.checked && n >= 3; });
+  }
+  function readNames(boxId, countId) {
+    const lines = $(boxId).value.split(/\n/).map(s => s.trim()).filter(Boolean);
+    const cnt = $(countId); cnt.textContent = `${Math.min(lines.length, 10)} / 10 ชื่อ` + (lines.length > 10 ? ` (ใช้ 10 ชื่อแรก)` : '');
+    cnt.classList.toggle('over', lines.length > 10);
+    return lines.slice(0, 10);
+  }
+  function readSettings() {
+    const num = id => { const v = $(id).value.trim(); return v === '' || isNaN(+v) ? null : Math.abs(+v); };
+    const checked = id => [...$(id).querySelectorAll('input:checked')].map(c => c.value);
+    return { names: readNames('names', 'ncount'), gt: num('gt'), lt: num('lt'), types: checked('types'),
+      exNames: readNames('exnames', 'excount'), exTypes: checked('extypes') };
+  }
+
+  function update() {
+    if (!table) return;
+    const res = compute(table, readSettings());
+    const labels = [['ซ้ำ ถอน/ฝาก', '--hl1'], ['ตามชื่อ', '--hl2'], ['ตามยอดเงิน', '--hl3'], ['ประเภท/ช่องทาง', '--hl4']];
+    const sb = $('sumBody'); sb.textContent = '';
+    res.summary.forEach(([c, a], i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><span class="sw" style="background:var(${labels[i][1]})"></span></td><td>${fmtInt(c)}</td><td>${fmt(a)}</td>`;
+      tr.firstChild.append(labels[i][0]);
+      sb.append(tr);
+    });
+    $('exnote').textContent = res.saved[0] ? `ยกเว้นไม่ตัด ${fmtInt(res.saved[0])} รายการ รวม ${fmt(res.saved[1])} บาท ซึ่งจะถูกตัดถ้าไม่ได้ตั้งค่ายกเว้นไว้` : '';
+    $('sumCnt').textContent = fmtInt(res.summary.reduce((s, x) => s + x[0], 0));
+    $('sumAmt').textContent = fmt(res.summary.reduce((s, x) => s + x[1], 0));
+    const mb = $('monBody'); mb.textContent = '';
+    const tot = { t: 0, d: [0, 0, 0, 0], net: 0 };
+    res.months.forEach(mo => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${TH_MONTHS[mo.m]} ${mo.y}</td><td>${fmt(mo.total)}</td>` +
+        mo.d.map(x => `<td class="neg">${fmt(-x)}</td>`).join('') + `<td class="net">${fmt(mo.net)}</td>`;
+      mb.append(tr);
+      tot.t += mo.total; mo.d.forEach((x, i) => { tot.d[i] += x; }); tot.net += mo.net;
+    });
+    $('monFoot').innerHTML = `<tr><td>รวม</td><td>${fmt(tot.t)}</td>` + tot.d.map(x => `<td class="neg">${fmt(-x)}</td>`).join('') + `<td class="net">${fmt(tot.net)}</td></tr>`;
+    lastRes = res;
+    renderDetail();
+  }
+
+  function renderDetail() {
+    const res = lastRes; if (!res) return;
+    const months = res.months;
+    if (!months.length) { $('detail').hidden = true; return; }
+    $('detail').hidden = false;
+    monthIdx = Math.max(0, Math.min(monthIdx, months.length - 1));
+    const mo = months[monthIdx];
+    const { rows, cols } = table;
+    const items = [];
+    rows.forEach((r, i) => {
+      const d = r[cols.dt];
+      if (!(d instanceof Date) || d.getUTCFullYear() !== mo.y || d.getUTCMonth() !== mo.m) return;
+      const opt = res.L[i] ? 0 : res.M[i] ? 1 : res.N[i] ? 2 : res.O[i] ? 3 : -1;
+      if (opt < 0) return;
+      const g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0;
+      items.push({ i, d, opt, g, w, sub: opt === 2 ? res.N[i] : '' });
+    });
+    const hideWd = $('hidewd').checked;
+    const shown = hideWd ? items.filter(x => x.g > 0) : items;
+    const cutDeposits = items.filter(x => x.g > 0);
+    const cutSum = cutDeposits.reduce((s, x) => s + x.g, 0);
+    $('mname').textContent = `${TH_MONTHS[mo.m]} ${mo.y}`;
+    $('mstat').textContent = items.length ? `ตัดยอดฝาก ${cutDeposits.length} รายการ รวม ${fmt(cutSum)} บาท` : 'ไม่มีรายการที่ถูกตัด';
+    $('hidewd').parentElement.hidden = !items.some(x => x.g <= 0);
+    $('mprev').disabled = monthIdx === 0;
+    $('mnext').disabled = monthIdx === months.length - 1;
+    const chips = $('mchips'); chips.textContent = '';
+    mo.d.forEach((x, k) => {
+      const n = shown.filter(it => it.opt === k).length;
+      if (!n) return;
+      const c = document.createElement('span');
+      c.innerHTML = `<span class="sw" style="background:var(${OPT[k][1]})"></span>`;
+      c.append(`${OPT[k][0]} ${n} แถว, ${fmt(x)} บาท`);
+      chips.append(c);
+    });
+    const box = $('days'); box.textContent = '';
+    if (!shown.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'เดือนนี้ไม่มีรายการที่ถูกตัดตามค่าที่ตั้งไว้'; box.append(e); return; }
+    const byDay = new Map();
+    shown.forEach(it => { const k = it.d.getUTCDate(); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(it); });
+    [...byDay.keys()].sort((a, b) => a - b).forEach(k => {
+      const list = byDay.get(k), d0 = list[0].d;
+      const dep = list.filter(x => x.g > 0);
+      const sec = document.createElement('section'); sec.className = 'day';
+      const head = document.createElement('div'); head.className = 'dayhead';
+      const hl = document.createElement('span'); hl.textContent = `${TH_DAYS[d0.getUTCDay()]} ${k} ${TH_MONTHS[mo.m]} ${mo.y}`;
+      const hs = document.createElement('small'); hs.textContent = `ตัดยอดฝาก ${dep.length} รายการ, ${fmt(dep.reduce((s, x) => s + x.g, 0))} บาท`;
+      head.append(hl, hs); sec.append(head);
+      list.forEach(it => {
+        const r = rows[it.i];
+        const el = document.createElement('div'); el.className = 'item' + (it.g > 0 ? '' : ' wd');
+        const tm = document.createElement('div'); tm.className = 'tm'; tm.textContent = cols.time >= 0 ? timeText(r[cols.time]) : '';
+        const what = document.createElement('div'); what.className = 'what';
+        const why = document.createElement('span'); why.className = 'why';
+        why.innerHTML = `<span class="sw" style="background:var(${OPT[it.opt][1]});margin-right:0"></span>`;
+        why.append(OPT[it.opt][0] + (it.sub ? ` (${it.sub})` : ''));
+        what.append(why);
+        if (cols.type >= 0 && r[cols.type] != null) { const ty = document.createElement('span'); ty.className = 'typ'; ty.textContent = String(r[cols.type]); what.append(ty); }
+        const desc = document.createElement('span'); desc.className = 'desc'; desc.textContent = cols.detail >= 0 && r[cols.detail] != null ? String(r[cols.detail]) : '';
+        what.append(desc);
+        const amt = document.createElement('div'); amt.className = 'amt';
+        if (it.g > 0) { amt.textContent = fmt(it.g); const sm = document.createElement('small'); sm.textContent = 'ฝาก'; amt.append(sm); }
+        else { amt.textContent = fmt(it.w); const sm = document.createElement('small'); sm.textContent = 'ถอน (คู่ของยอดฝาก)'; amt.append(sm); }
+        el.append(tm, what, amt); sec.append(el);
+      });
+      box.append(sec);
+    });
+  }
+  const schedule = () => { clearTimeout(timer); timer = setTimeout(update, 150); };
+
+  async function download() {
+    if (!table) return;
+    const btn = $('dl'); btn.disabled = true; setStatus('กำลังสร้างไฟล์…');
+    try {
+      const XL = await ensureExcelJS();
+      const { wb } = buildWorkbook(XL, table, readSettings());
+      const buf = await wb.xlsx.writeBuffer();
+      const cap = dlCap || await dlPromise;
+      const name = fileBase + '_Cleanup.xlsx';
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      if (!cap) {
+        // เบราว์เซอร์บางตัวตัดชื่อไฟล์ที่ไม่ใช่อักษรอังกฤษทิ้ง จึงใช้ชื่อแบบอังกฤษในทางนี้
+        const safe = (fileBase.replace(/[^\x20-\x7E]+/g, '_').replace(/[\\/:*?"<>|]+/g, '').replace(/_+/g, '_').replace(/^[_\s]+|[_\s]+$/g, '') || 'Statement') + '_Cleanup.xlsx';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = safe; a.rel = 'noopener';
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        setStatus('บันทึกไฟล์ ' + safe + ' แล้ว ถ้าไม่พบไฟล์ในโฟลเดอร์ดาวน์โหลด ให้เปิดหน้านี้ในแท็บใหม่ของเบราว์เซอร์แล้วกดอีกครั้ง', 'ok');
+        return;
+      }
+      await cap.save({ filename: name, data: blob });
+      setStatus('ดาวน์โหลดแล้ว: ' + name, 'ok');
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'declined') setStatus('ยกเลิกการดาวน์โหลด');
+      else if (code === 'rate_limited') setStatus('มีหน้าต่างยืนยันเปิดอยู่ ปิดหน้าต่างนั้นก่อนแล้วลองอีกครั้ง', 'error');
+      else if (code === 'unavailable' || code === 'not_granted' || code === 'capability_disabled' || code === 'capability_removed')
+        setStatus('หน้านี้บันทึกไฟล์ไม่ได้ในมุมมองนี้ (' + code + ') ให้ล็อกอิน claude.ai ด้วยบัญชีที่เปิดลิงก์นี้ได้ หรือเปิดหน้านี้ในแท็บใหม่แล้วลองอีกครั้ง', 'error');
+      else if (code) setStatus('ดาวน์โหลดไม่สำเร็จ (' + code + ')', 'error');
+      else setStatus('สร้างไฟล์ไม่สำเร็จ: ' + (e && e.message ? e.message : e), 'error');
+    } finally { btn.disabled = false; }
+  }
+
+  const drop = $('drop');
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  $('file').addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+  for (const id of ['pick', 'repick']) $(id).addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('file').click(); } });
+  $('names').addEventListener('input', schedule);
+  $('exnames').addEventListener('input', schedule);
+  $('gt').addEventListener('input', schedule);
+  $('lt').addEventListener('input', schedule);
+  $('dl').addEventListener('click', download);
+  $('rankmore').addEventListener('click', () => { rankAll = !rankAll; renderRanking(); });
+  $('hidewd').addEventListener('change', renderDetail);
+  const goMonth = step => {
+    monthIdx += step; renderDetail();
+    const top = $('detail').getBoundingClientRect().top;
+    if (top < 0) window.scrollBy({ top: top - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+  $('mprev').addEventListener('click', () => goMonth(-1));
+  $('mnext').addEventListener('click', () => goMonth(1));
+})();
+</script>
+</body>
+</html>
