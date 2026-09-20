@@ -381,13 +381,13 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
     <div class="panel">
       <div class="panel-head">
         <h2>นำเข้าไฟล์</h2>
-        <span class="muted small">.pdf .xlsx .xls .csv · หลายไฟล์พร้อมกันได้</span>
+        <span class="muted small">.pdf .xlsx .xls .csv · ครั้งละ 1 ไฟล์</span>
       </div>
       <div class="drop" id="drop" tabindex="0" role="button" aria-label="เลือกไฟล์ Statement">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="color:var(--accent)"/></svg>
         <strong>คลิกหรือลากไฟล์มาวางที่นี่</strong>
         <span class="muted small">แนะนำ e-Statement PDF ที่ดาวน์โหลดจากธนาคาร (ไม่ใช่ไฟล์สแกน)</span>
-        <input type="file" id="fileInput" multiple accept=".pdf,.xlsx,.xls,.csv" hidden>
+        <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv" hidden>
       </div>
       <div class="files" id="files"></div>
     </div>
@@ -1421,8 +1421,11 @@ $("tablebox").addEventListener("click", e=>{
 /* ---------------- File intake ---------------- */
 function resetToSample(){ files=[]; }
 async function addFiles(list){
-  const arr = Array.from(list).filter(f=>/\.(pdf|xlsx|xls|csv)$/i.test(f.name));
+  const all = Array.from(list), arr = all.filter(f=>/\.(pdf|xlsx|xls|csv)$/i.test(f.name)).slice(0,1);
   if(!arr.length){ toast("รองรับเฉพาะไฟล์ .pdf .xlsx .xls .csv"); return; }
+  // นำเข้าได้ครั้งละ 1 ไฟล์: ไฟล์ใหม่แทนที่ไฟล์เดิมและล้างค่าทั้งหมดก่อน
+  if(files.length) resetEverything(null, true);
+  if(all.length>1) toast(`นำเข้าได้ครั้งละ 1 ไฟล์ — ใช้ไฟล์ “${arr[0].name}”`);
   for(const file of arr){
     const f = {id:++fid, name:file.name, kind:/\.pdf$/i.test(file.name)?"pdf":"excel", status:"parsing", rows:[], password:""};
     f.buf = await file.arrayBuffer();
@@ -1474,14 +1477,18 @@ input.addEventListener("change", ()=>{ if(input.files.length) addFiles(input.fil
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", e=>{ if(e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
 $("dlgSkip").addEventListener("click", ()=>{ closeReview(); openCut(); });
-$("resetAll").addEventListener("click", ()=>{
+function resetEverything(msg, keepBank){
   files=[]; closeReview(); closeCut(); reviewAuto=false;
-  selectedBank="AUTO"; try{ localStorage.setItem("ll.bank","AUTO"); }catch(e){}
+  if(!keepBank){ selectedBank="AUTO"; try{ localStorage.setItem("ll.bank","AUTO"); }catch(e){} }
   if(window.__cut && window.__cut.reset) window.__cut.reset();
   renderBanks(); renderAll();
-  window.scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
-  toast("ล้างค่าทั้งหมดแล้ว");
-});
+  if(msg){
+    window.scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+    toast(msg);
+  }
+}
+window.__resetAll = resetEverything;
+$("resetAll").addEventListener("click", ()=>resetEverything("ล้างค่าทั้งหมดแล้ว"));
 $("dlgClose").addEventListener("click", closeReview);
 $("openCutBtn").addEventListener("click", openCut);
 $("cutClose").addEventListener("click", closeCut);
@@ -2574,6 +2581,10 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   }
   const schedule = () => { clearTimeout(timer); timer = setTimeout(update, 150); };
 
+  // ดาวน์โหลดสำเร็จแล้ว → ล้างค่าทั้งหมดอัตโนมัติ พร้อมรับไฟล์ถัดไป
+  function afterDownload(name) {
+    setTimeout(() => { if (window.__resetAll) window.__resetAll('ดาวน์โหลด ' + name + ' แล้ว · ล้างค่าเรียบร้อย พร้อมนำเข้าไฟล์ถัดไป'); }, 700);
+  }
   async function download() {
     if (!table) return;
     const btn = $('dl'); btn.disabled = true; setStatus('กำลังสร้างไฟล์…');
@@ -2592,11 +2603,13 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
         const a = document.createElement('a'); a.href = url; a.download = safe; a.rel = 'noopener';
         document.body.append(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 60000);
-        setStatus('บันทึกไฟล์ ' + safe + ' แล้ว ถ้าไม่พบไฟล์ในโฟลเดอร์ดาวน์โหลด ให้เปิดหน้านี้ในแท็บใหม่ของเบราว์เซอร์แล้วกดอีกครั้ง', 'ok');
+        setStatus('บันทึกไฟล์ ' + safe + ' แล้ว', 'ok');
+        afterDownload(safe);
         return;
       }
       await cap.save({ filename: name, data: blob });
       setStatus('ดาวน์โหลดแล้ว: ' + name, 'ok');
+      afterDownload(name);
     } catch (e) {
       const code = e && e.code;
       if (code === 'declined') setStatus('ยกเลิกการดาวน์โหลด');
