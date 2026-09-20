@@ -15,6 +15,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>
+(function(){var t='dark';try{t=localStorage.getItem('ledgerline-theme')||'dark';}catch(e){}document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');})();
+</script>
 <style>
 :root{
   --bg:oklch(14% 0.014 245); --surface:oklch(19% 0.019 245); --surface-2:oklch(23% 0.021 245); --ink:oklch(94% 0.008 250); --muted:oklch(71% 0.023 250); --line:oklch(30% 0.021 245);
@@ -25,7 +28,18 @@
   --display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
   --body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --line-2:#2A3441; --mark-line:#1F3A33; --drop-line:#2C3643; --field-line:#26303C; --logo:#7CC4B0;
+  --in:#3fc08f; --out:#ee7a4f; --node-fill:oklch(94% 0.008 250 / .07); --node-line:oklch(94% 0.008 250 / .22);
   color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:oklch(97.5% 0.004 250); --surface:oklch(100% 0 0); --surface-2:oklch(96.5% 0.006 250); --ink:oklch(24% 0.02 250); --muted:oklch(47% 0.02 250); --line:oklch(89% 0.008 250);
+  --accent:oklch(52% 0.11 168); --accent-ink:oklch(99% 0.01 168); --accent-soft:oklch(94% 0.04 168);
+  --good:oklch(50% 0.13 152); --good-soft:oklch(94% 0.05 152); --warn:oklch(56% 0.13 70); --warn-soft:oklch(95% 0.05 85); --bad:oklch(53% 0.17 25); --bad-soft:oklch(95% 0.03 25);
+  --shadow:0 18px 40px -24px oklch(30% 0.03 250 / .25), 0 1px 3px oklch(30% 0.03 250 / .08);
+  --line-2:oklch(86% 0.01 250); --mark-line:oklch(86% 0.04 168); --drop-line:oklch(80% 0.012 250); --field-line:oklch(86% 0.01 250); --logo:oklch(48% 0.1 168);
+  --in:#138a5e; --out:#c24a1c; --node-fill:oklch(24% 0.02 250 / .05); --node-line:oklch(24% 0.02 250 / .2);
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -39,7 +53,7 @@ h2{font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
 .small{font-size:13px}
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
 .brand{display:flex;align-items:center;gap:12px}
-.mark{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);border:1px solid #1F3A33;display:grid;place-items:center}
+.mark{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);border:1px solid var(--mark-line);display:grid;place-items:center}
 .mark svg{display:block}
 .privacy{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
 .privacy b{color:var(--good);font-weight:600}
@@ -55,13 +69,13 @@ h2{font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
 .chip{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 10.5px var(--display);letter-spacing:.02em}
 .bank-note{border-top:1px solid var(--line);padding:12px 2px 0;font-size:13px}
 .bank-note b{font-weight:600}
-.drop{border:1px dashed #2C3643;border-radius:14px;background:transparent;padding:32px 20px;min-height:180px;width:100%;text-align:center;display:grid;place-content:center;gap:10px;justify-items:center;cursor:pointer;transition:background .15s,border-color .15s}
+.drop{border:1px dashed var(--drop-line);border-radius:14px;background:transparent;padding:32px 20px;min-height:180px;width:100%;text-align:center;display:grid;place-content:center;gap:10px;justify-items:center;cursor:pointer;transition:background .15s,border-color .15s}
 .drop.over,.drop:hover{border-color:var(--accent);background:var(--accent-soft)}
 .drop strong{pointer-events:none}
 .drop span,.drop svg{pointer-events:none}
 .drop:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .drop strong{font-family:var(--display);font-size:16px;font-weight:600}
-.btn{appearance:none;border:1px solid #2A3441;background:transparent;color:var(--ink);border-radius:9px;padding:8px 14px;font:500 13.5px var(--body);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn{appearance:none;border:1px solid var(--line-2);background:transparent;color:var(--ink);border-radius:9px;padding:8px 14px;font:500 13.5px var(--body);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 .btn:hover{border-color:var(--accent)}
 .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
@@ -210,9 +224,9 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 
 #cut .cmark{color:var(--ink);background:none;text-decoration:underline;text-decoration-color:var(--hl);text-decoration-thickness:.2em;text-underline-offset:.45em;text-decoration-skip-ink:none}
 #cut .opt{border-color:var(--line)}
-#cut textarea,#cut input[type=number],.fname input{background:var(--bg);border-color:#26303C;color:var(--ink)}
+#cut textarea,#cut input[type=number],.fname input{background:var(--bg);border-color:var(--field-line);color:var(--ink)}
 .fname{display:flex;align-items:center;gap:10px;flex:1;min-width:240px;font-size:14px;color:var(--muted)}
-.fname-box{display:flex;align-items:center;flex:1;border:1px solid #26303C;border-radius:9px;background:var(--bg);overflow:hidden}
+.fname-box{display:flex;align-items:center;flex:1;border:1px solid var(--field-line);border-radius:9px;background:var(--bg);overflow:hidden}
 .fname-box:focus-within{border-color:var(--accent)}
 .fname input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font:14px var(--body);padding:9px 12px}
 .fname .ext{padding:0 12px;color:var(--muted);font-family:var(--mono);font-size:13px}
@@ -280,20 +294,23 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 #cut .pd-table td.in{color:var(--good)} #cut .pd-table td.out{color:var(--muted)}
 #cut .pd-table td:nth-child(-n+3),#cut .pd-table th:nth-child(-n+3){text-align:left}
 #sankey .sk-lblg{cursor:pointer}
+.top-actions{display:flex;gap:8px;align-items:center}
+.theme-btn .ic{display:none} :root[data-theme="light"] .theme-btn .ic-sun{display:block} :root:not([data-theme="light"]) .theme-btn .ic-moon{display:block}
 .flow-top{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap}
 .flow-top .subhead{margin-bottom:6px}
 #mfSvg{display:block;width:100%;min-width:760px;height:auto}
 #mfSvg text{font-family:var(--body);font-size:13px}
 #mfSvg .sk-lbl{fill:var(--ink);font-weight:500}
 #mfSvg .sk-cnt{fill:var(--muted);font-family:var(--mono);font-size:11.5px}
+#mfSvg .mf-bank{font-family:var(--body);font-weight:600;fill:var(--ink)}
 #mfSvg .sk-head{fill:var(--muted);font-size:11.5px;letter-spacing:.04em}
 #mfSvg .mf-band{fill-opacity:.26;transition:fill-opacity .12s}
 #mfSvg .mf-band.on{fill-opacity:.6}
 #mfSvg.dim .mf-band:not(.on){fill-opacity:.08}
 #mfSvg .mf-lblg[data-k]{cursor:pointer}
-#mfSvg .mf-c1{fill:var(--bg);font-weight:600;font-size:13.5px}
+#mfSvg .mf-c1{fill:var(--ink);font-weight:600;font-size:13.5px}
 #mfSvg .mf-c2{fill:var(--bg);font-family:var(--mono);font-size:11px;opacity:.75}
-.mf-in{color:#3fc08f} .mf-out{color:#ee7a4f}
+.mf-in{color:var(--in)} .mf-out{color:var(--out)}
 .mf-scroll{max-height:380px;overflow:auto}
 #cut .rank-table tr.mf-both td.pname .nm::after{content:" ↺";color:var(--warn)}
 #cut .rank-table td.pname{white-space:normal}
@@ -331,17 +348,24 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
   <header class="top">
     <div class="brand">
       <div class="mark" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 22 22" fill="none"><rect x="3" y="2" width="16" height="18" rx="2" stroke="#7CC4B0" stroke-width="1.8"/><path d="M7 7h8M7 11h8M7 15h5" stroke="#7CC4B0" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 22 22" fill="none"><rect x="3" y="2" width="16" height="18" rx="2" stroke="var(--logo)" stroke-width="1.8"/><path d="M7 7h8M7 11h8M7 15h5" stroke="var(--logo)" stroke-width="1.8" stroke-linecap="round"/></svg>
       </div>
       <div>
         <h1>แปลง Statement และตัดยอด</h1>
         <div class="muted small">ประมวลผลในเบราว์เซอร์นี้เท่านั้น ไฟล์ไม่ถูกส่งออกไปที่ใด</div>
       </div>
     </div>
+    <div class="top-actions">
+    <button class="btn theme-btn" id="themeBtn" type="button" aria-label="สลับโหมดกลางวัน/กลางคืน">
+      <svg class="ic ic-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <svg class="ic ic-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="themeLbl">กลางคืน</span>
+    </button>
     <button class="btn" id="resetAll" type="button">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       ล้างค่าทั้งหมด
     </button>
+    </div>
   </header>
   <div class="stage-title" id="stage1"><h2>แปลง PDF เป็น Excel</h2></div>
   <section class="setup">
@@ -1325,7 +1349,7 @@ function cutTable(){
     rows.push([ d ? new Date(Date.UTC(d.y, d.m-1, d.d)) : null, r.time||null, r.type||null, r.ref||null, r.desc||null,
       (r.wd||0)/100, (r.dep||0)/100, r.bal==null?null:r.bal/100, r.bank||null, r.ok?"พร้อมใช้งาน":"ต้องตรวจสอบ", r.ok?null:(r.warn||null) ]);
   }
-  return { sheetName:"Transactions", headers:CUT_HEADERS.slice(), cols:{dt:0,time:1,type:2,detail:4,w:5,d:6,bal:7}, rows };
+  return { sheetName:"Transactions", headers:CUT_HEADERS.slice(), cols:{dt:0,time:1,type:2,detail:4,w:5,d:6,bal:7,bank:8}, rows };
 }
 let cutTimer=null, reviewAuto=false;
 /* stage 2 runs automatically; the popup appears only when rows still fail the balance check */
@@ -1613,7 +1637,7 @@ function extractTable(wb) {
         type: find(t => t.includes('ประเภท') || t.includes('ช่องทาง')) - 1,
         detail: find(t => t.includes('รายละเอียด')) - 1,
         bal: find(t => t.includes('คงเหลือ')) - 1,
-        time: find(t => t.startsWith('เวลา')) - 1 };
+        time: find(t => t.startsWith('เวลา')) - 1, bank: find(t => t === 'ธนาคาร') - 1 };
       const rows = [];
       for (let rr = r + 1; rr <= ws.rowCount; rr++) {
         const src = ws.getRow(rr); const vals = []; let any = false;
@@ -2040,6 +2064,29 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     const label = acct && !bare ? acct : text + (acct ? ' (' + acct + ')' : '');
     return { key, label };
   }
+
+  /* ธนาคารของคู่โอน: จากรหัสธนาคาร 3 หลักหน้าเลขบัญชี เช่น "TR fr 014-4094869266" → 014 = SCB */
+  const TH_BANK_CODE = { '002': ['BBL', 'กรุงเทพ'], '004': ['KBANK', 'กสิกรไทย'], '006': ['KTB', 'กรุงไทย'], '011': ['TTB', 'ทหารไทยธนชาต'], '014': ['SCB', 'ไทยพาณิชย์'],
+    '017': ['CITI', 'ซิตี้แบงก์'], '018': ['SMBC', 'ซูมิโตโม มิตซุย'], '020': ['SCBT', 'สแตนดาร์ดชาร์เตอร์ด'], '022': ['CIMB', 'ซีไอเอ็มบี ไทย'], '024': ['UOB', 'ยูโอบี'],
+    '025': ['BAY', 'กรุงศรีอยุธยา'], '030': ['GSB', 'ออมสิน'], '031': ['HSBC', 'เอชเอสบีซี'], '033': ['GHB', 'อาคารสงเคราะห์'], '034': ['BAAC', 'ธ.ก.ส.'],
+    '035': ['EXIM', 'เพื่อการส่งออกและนำเข้า'], '039': ['MHCB', 'มิซูโฮ'], '052': ['BOC', 'แห่งประเทศจีน'], '065': ['TBANK', 'ธนชาต'], '066': ['ISBT', 'อิสลามแห่งประเทศไทย'],
+    '067': ['TISCO', 'ทิสโก้'], '069': ['KKP', 'เกียรตินาคินภัทร'], '070': ['ICBC', 'ไอซีบีซี (ไทย)'], '071': ['TCR', 'ไทยเครดิต'], '073': ['LHB', 'แลนด์ แอนด์ เฮ้าส์'], '098': ['SME', 'SME D Bank'] };
+  const BANK_ALIAS = { LHB: 'LHBANK', TCR: 'THAICREDIT', TBANK: 'TTB' };
+  const BANK_COLOR = { KBANK: '#138F2D', SCB: '#4E2E7F', BBL: '#1E4598', KTB: '#1BA5E1', TTB: '#1279BE', BAAC: '#4B9B2E', GSB: '#EB198D', KKP: '#199CC5', BAY: '#D9A21B',
+    UOB: '#0B3B8C', CIMB: '#7E2A37', TISCO: '#12549B', LHBANK: '#6D6E71', THAICREDIT: '#E06414', EXIM: '#0F4C81', BOC: '#C8102E', HSBC: '#DB0011', ICBC: '#C4161C', GHB: '#F08A00', CITI: '#056DAE', SCBT: '#0473EA', ISBT: '#0B7A3E' };
+  function bankColor(short) { return BANK_COLOR[short] || BANK_COLOR[BANK_ALIAS[short]] || '#7a8492'; }
+  function bankOf(detail, stmtBank) {
+    const raw = String(detail == null ? '' : detail);
+    const m = raw.match(/(?:^|\s)(\d{3})-(?=[0-9A-Z])/);
+    if (m && TH_BANK_CODE[m[1]]) { const [short, th] = TH_BANK_CODE[m[1]]; return { short, code: m[1], name: `ธนาคาร${th} (${short}) · รหัส ${m[1]}`, color: bankColor(short) }; }
+    if (/\bEWALLETID\b/i.test(raw)) return { short: 'e-Wallet', name: 'e-Wallet ผ่านพร้อมเพย์ (ไม่ระบุธนาคาร)', color: '#7a8492' };
+    if (/\b(NATID|MSISDN)\b/i.test(raw)) return { short: 'พร้อมเพย์', name: 'พร้อมเพย์ เลขบัตร/เบอร์โทร (ไม่ระบุธนาคาร)', color: '#7a8492' };
+    if (/^\s*TR\s+(fr|to)\s+\d{10,}/i.test(raw) && stmtBank) {
+      const sm = String(stmtBank).match(/\(([^)]+)\)/), short = sm ? sm[1].trim() : String(stmtBank);
+      return { short, name: `ธนาคารเดียวกับบัญชีเรา · ${stmtBank}`, color: bankColor(short) };
+    }
+    return null;
+  }
   /* ===== เงินโอนเข้าแล้วโอนกลับ: มีนัยยะ (เงินคงไว้จริง) หรือแค่โอนไปมา =====
      ดูเฉพาะบัญชีที่มีทั้งโอนเข้าและโอนออก ในช่วงที่เลือก
      โอนกลับคืน = min(เข้า, ออก)  → ส่วนที่หักล้างกัน ไม่ใช่รายได้จริง
@@ -2069,8 +2116,10 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
       const p = cols.detail >= 0 ? party(r[cols.detail]) : null;
       if (!p) return;
       const m = g > 0 ? inMap : outMap;
-      let e = m.get(p.key); if (!e) { e = { key: p.key, label: p.label, n: 0, amt: 0, idx: [] }; m.set(p.key, e); }
+      let e = m.get(p.key); if (!e) { e = { key: p.key, label: p.label, n: 0, amt: 0, idx: [], banks: new Map() }; m.set(p.key, e); }
       e.n++; e.amt += g > 0 ? g : w; e.idx.push(i);
+      const bk = bankOf(r[cols.detail], cols.bank >= 0 ? r[cols.bank] : null);
+      if (bk) { const c = e.banks.get(bk.short); if (c) c.n++; else e.banks.set(bk.short, { ...bk, n: 1 }); }
     });
     // accounts with money both in and out
     const accts = [];
@@ -2200,6 +2249,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   const IN_C = '#199e70', OUT_C = '#d95926', OTHER_IN = '#2f6b57', OTHER_OUT = '#8a4a30';
   function mfRank(map, top) {
     const all = [...map.values()].sort((a, b) => b.amt - a.amt || b.n - a.n);
+    all.forEach(e => { e.bank = [...(e.banks || new Map()).values()].sort((a, b) => b.n - a.n)[0] || null; });
     const tot = all.reduce((s, e) => s + e.amt, 0);
     // มีนัยยะ = ยอดตั้งแต่ 3% ของยอดฝั่งนั้น (อย่างน้อย 1, สูงสุด 10 บัญชี) · ไม่มีกลุ่ม "อื่นๆ"
     const list = all.filter((e, i) => i === 0 || e.amt >= tot * MF_MIN).slice(0, top).map((e, i) => ({ ...e, rank: i + 1 }));
@@ -2230,7 +2280,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     txt(xR + NW / 2, 12, 'เราโอนให้ใคร', 'sk-head', 'middle');
     const bands = el('g', {}), nodes = el('g', {}), labels = el('g', {});
     const cTop = TOP + (H - cH) / 2;
-    el('rect', { x: xC, y: cTop, width: CW, height: Math.max(cH, 60), rx: 6, fill: 'var(--ink)' }, nodes);
+    el('rect', { x: xC, y: cTop, width: CW, height: Math.max(cH, 60), rx: 8, fill: 'var(--node-fill)', stroke: 'var(--node-line)', 'stroke-width': 1 }, nodes);
     const cMid = cTop + Math.max(cH, 60) / 2;
     txt(xC + CW / 2, cMid, 'บัญชีเรา', 'mf-c1', 'middle', nodes);
     const fits = [];
@@ -2242,6 +2292,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
         const color = e.key ? (left ? IN_C : OUT_C) : (left ? OTHER_IN : OTHER_OUT);
         const pct = Math.round(1000 * e.amt / tot) / 10;
         const tipHtml = `<b>${e.key ? e.rank + '. ' : ''}${escH(e.label)}</b>${e.key && both.has(e.key) ? ' ↺' : ''}<br>` +
+          (e.bank ? `<span class="m">${escH(e.bank.name)}</span><br>` : '') +
           `${left ? 'โอนเข้าบัญชีเรา' : 'เราโอนให้'} <span class="m">${fmtInt(e.n)} ครั้ง · ${fmt(e.amt)} ฿</span><br>` +
           `<span class="m">${pct}% ของยอด${left ? 'เข้า' : 'ออก'}ทั้งหมด · เฉลี่ย ${fmt(e.amt / e.n)} ฿/ครั้ง</span>` +
           (e.key && both.has(e.key) ? `<br>${left ? 'เราโอนกลับให้' : 'บัญชีนี้โอนเข้ามา'} <span class="m">${fmtInt((left ? F.outMap : F.inMap).get(e.key).n)} ครั้ง · ${fmt((left ? F.outMap : F.inMap).get(e.key).amt)} ฿</span>` : '') +
@@ -2257,7 +2308,9 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
         const lx = left ? xL - 10 : xR + NW + 10, anchor = left ? 'end' : 'start';
         const head = e.key ? e.rank + '. ' : '', mark = e.key && both.has(e.key) ? ' ↺' : '';
         const t1 = txt(lx, ny + h / 2 - 8, head + e.label + mark, 'sk-lbl', anchor, g);
-        txt(lx, ny + h / 2 + 9, `${fmtInt(e.n)} ครั้ง · ${fmt(e.amt)} ฿ · ${Math.round(100 * e.amt / tot)}%`, 'sk-cnt', anchor, g);
+        const t2 = txt(lx, ny + h / 2 + 9, '', 'sk-cnt', anchor, g);
+        if (e.bank) { const d = el('tspan', { fill: e.bank.color }, t2); d.textContent = '⬤ '; d.setAttribute('font-size', '10'); const b = el('tspan', { class: 'mf-bank' }, t2); b.textContent = e.bank.short; const sp = el('tspan', {}, t2); sp.textContent = ' · '; }
+        const rest2 = el('tspan', {}, t2); rest2.textContent = `${fmtInt(e.n)} ครั้ง · ${fmt(e.amt)} ฿ · ${Math.round(100 * e.amt / tot)}%`;
         fits.push(() => { let s = e.label; t1.textContent = head + s + mark; while (t1.getComputedTextLength() > LBL - 8 && s.length > 4) { s = s.slice(0, -2); t1.textContent = head + s.trim() + '…' + mark; } });
         y += slot + GAP; cy += bh;
       });
@@ -2592,6 +2645,24 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   };
   $('mprev').addEventListener('click', () => goMonth(-1));
   $('mnext').addEventListener('click', () => goMonth(1));
+})();
+</script>
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeBtn'), lbl=document.getElementById('themeLbl'), meta=document.querySelector('meta[name="theme-color"]'), cs=document.querySelector('meta[name="color-scheme"]');
+  function apply(t){
+    root.setAttribute('data-theme',t);
+    lbl.textContent = t==='light' ? 'กลางวัน' : 'กลางคืน';
+    btn.title = t==='light' ? 'โหมดกลางวัน · คลิกเพื่อเปลี่ยนเป็นกลางคืน' : 'โหมดกลางคืน · คลิกเพื่อเปลี่ยนเป็นกลางวัน';
+    btn.setAttribute('aria-pressed', String(t==='light'));
+    if(meta) meta.setAttribute('content', t==='light' ? '#F6F7F9' : '#090C10');
+    if(cs) cs.setAttribute('content', t);
+  }
+  apply(root.getAttribute('data-theme')==='light'?'light':'dark');
+  btn.addEventListener('click',function(){
+    var t = root.getAttribute('data-theme')==='light' ? 'dark' : 'light';
+    apply(t); try{localStorage.setItem('ledgerline-theme',t);}catch(e){}
+  });
 })();
 </script>
 </body>
