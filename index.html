@@ -2343,6 +2343,136 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     svg.onmouseleave = rest;
     svg.onclick = ev => { const t = ev.target.closest('[data-k]'); if (t) selectParty(t.getAttribute('data-k')); };
   }
+
+  /* ===== Sankey ในไฟล์ Excel: วาดกราฟที่เห็นบนหน้าเว็บเป็นรูป PNG (โทนสว่าง) + ตารางข้อมูลประกอบ ===== */
+  async function sankeyPng() {
+    const src = $('mfSvg');
+    if (!src || !src.querySelector('path') || !flow.data) return null;
+    const vb = (src.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+    if (vb.length !== 4 || !vb[2]) return null;
+    const root = document.documentElement, prevTheme = root.getAttribute('data-theme');
+    const hadDim = src.classList.contains('dim'), onEls = [...src.querySelectorAll('.on')];
+    const clone = src.cloneNode(true);
+    const PROPS = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-opacity', 'opacity', 'font-family', 'font-size', 'font-weight', 'letter-spacing'];
+    try {
+      root.setAttribute('data-theme', 'light'); src.classList.remove('dim'); onEls.forEach(e => e.classList.remove('on'));
+      const a = [src, ...src.querySelectorAll('*')], b = [clone, ...clone.querySelectorAll('*')];
+      a.forEach((el, i) => {
+        const cs = getComputedStyle(el), t = b[i];
+        t.setAttribute('style', PROPS.map(pr => `${pr}:${cs.getPropertyValue(pr)}`).join(';'));
+        t.removeAttribute('class');
+        ['fill', 'stroke'].forEach(pr => { const v = t.getAttribute(pr); if (v && v.includes('var(')) t.removeAttribute(pr); });
+      });
+    } finally {
+      if (prevTheme) root.setAttribute('data-theme', prevTheme); else root.removeAttribute('data-theme');
+      if (hadDim) src.classList.add('dim'); onEls.forEach(e => e.classList.add('on'));
+    }
+    const W = vb[2], H = vb[3], S = 2;
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', W * S); clone.setAttribute('height', H * S);
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('x', vb[0]); bg.setAttribute('y', vb[1]); bg.setAttribute('width', W); bg.setAttribute('height', H); bg.setAttribute('fill', '#ffffff');
+    clone.insertBefore(bg, clone.firstChild);
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
+    try {
+      const img = await new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = url; });
+      const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+      const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+      return { base64: cv.toDataURL('image/png'), w: W, h: H };
+    } catch (e) { return null; } finally { URL.revokeObjectURL(url); }
+  }
+  // สรุปกราฟเป็นประโยคอ่านง่าย
+  function mfInsights(F, I, O, both) {
+    const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+    const who = e => `${e.label}${e.bank ? ' (' + e.bank.short + ')' : ''}`;
+    const L = [];
+    if (I.list.length) {
+      const t = I.list[0];
+      L.push(`เงินเข้า: มาจากบัญชีหลัก ${I.list.length} บัญชี รวม ${fmt(I.shownAmt)} บาท = ${pct(I.shownAmt, I.tot)}% ของเงินเข้าทั้งหมด ${fmt(I.tot)} บาท`);
+      L.push(`ผู้โอนเข้ามากที่สุด: ${who(t)} โอน ${fmtInt(t.n)} ครั้ง รวม ${fmt(t.amt)} บาท (${pct(t.amt, I.tot)}% ของเงินเข้า)` +
+        (t.amt >= I.tot * 0.5 ? ' — เงินเข้าส่วนใหญ่มาจากบัญชีนี้บัญชีเดียว' : ''));
+    }
+    if (O.list.length) {
+      const t = O.list[0];
+      L.push(`เงินออก: ไปยังบัญชีหลัก ${O.list.length} บัญชี รวม ${fmt(O.shownAmt)} บาท = ${pct(O.shownAmt, O.tot)}% ของเงินออกทั้งหมด ${fmt(O.tot)} บาท` +
+        (O.shownAmt < O.tot * 0.7 ? ` ที่เหลือเป็นรายการย่อยกระจายไปอีก ${fmtInt(O.all.length - O.list.length)} บัญชี` : ''));
+      L.push(`โอนออกมากที่สุด: ${who(t)} ${fmtInt(t.n)} ครั้ง รวม ${fmt(t.amt)} บาท (${pct(t.amt, O.tot)}% ของเงินออก)`);
+      const freq = [...O.list].sort((a, b) => b.n - a.n)[0];
+      if (freq && freq !== t && freq.n >= 20) L.push(`โอนออกบ่อยที่สุด: ${who(freq)} ${fmtInt(freq.n)} ครั้ง เฉลี่ยครั้งละ ${fmt(freq.amt / freq.n)} บาท (ยอดเล็กแต่บ่อย)`);
+    }
+    const net = I.tot - O.tot;
+    L.push(net >= 0 ? `สุทธิ: เงินเข้ามากกว่าเงินออก ${fmt(net)} บาท` : `สุทธิ: เงินออกมากกว่าเงินเข้า ${fmt(-net)} บาท`);
+    const rt = [...new Set([...I.list, ...O.list].map(e => e.key))].filter(k => both.has(k));
+    rt.forEach(k => { const a = F.inMap.get(k), b = F.outMap.get(k);
+      L.push(`โอนไปมา ↺: ${a.label} โอนเข้ามา ${fmt(a.amt)} บาท และเราโอนกลับให้ ${fmt(b.amt)} บาท` +
+        (b.amt >= a.amt ? ` — เราจ่ายให้บัญชีนี้มากกว่าที่ได้รับ ${fmt(b.amt - a.amt)} บาท (เป็นรายจ่าย ไม่ใช่รายได้)`
+          : b.amt >= a.amt * 0.8 ? ' — ยอดเข้าส่วนใหญ่ถูกโอนกลับ ไม่ใช่รายได้จริง' : ` — คงไว้เป็นเงินเข้าสุทธิ ${fmt(a.amt - b.amt)} บาท`)); });
+    return L;
+  }
+  async function addSankeySheet(wb) {
+    if (!flow.data) computeFlow();
+    const F = flow.data; if (!F) return;
+    const I = mfRank(F.inMap, MF_MAX), O = mfRank(F.outMap, MF_MAX);
+    if (!I.all.length && !O.all.length) return;
+    const both = new Set([...F.inMap.keys()].filter(k => F.outMap.has(k)));
+    const sh = wb.addWorksheet('Sankey', { properties: { tabColor: { argb: 'FF199E70' } }, views: [{ showGridLines: false }] });
+    const f = (o = {}) => Object.assign({ name: FONT, size: 12 }, o, o.color ? { color: { argb: o.color } } : {});
+    const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+    const thin = { style: 'thin', color: { argb: COLORS.line } }, box = { top: thin, left: thin, bottom: thin, right: thin };
+    [7, 34, 13, 11, 18, 13, 3, 7, 34, 13, 11, 18, 13, 3, 3].forEach((w, i) => { sh.getColumn(i + 1).width = w; });
+    const monthTxt = flow.month === 'all' ? 'ทุกเดือน' : `${TH_MONTHS[flow.month % 12]} ${Math.floor(flow.month / 12)}`;
+    sh.getCell('A1').value = 'แผนภาพการไหลของเงิน (Sankey) — ใครโอนเข้าบัญชีเรา และเราโอนให้ใคร'; sh.getCell('A1').font = f({ size: 16, bold: true, color: COLORS.navy });
+    sh.getCell('A2').value = `ช่วงข้อมูล: ${monthTxt} · แสดงเฉพาะบัญชีที่มีนัยยะ (ยอดตั้งแต่ ${MF_MIN * 100}% ของยอดฝั่งนั้น สูงสุดฝั่งละ ${MF_MAX} บัญชี)`;
+    sh.getCell('A2').font = f({ size: 11, color: COLORS.hint });
+    sh.getCell('A3').value = `โอนเข้าทั้งหมด ${fmtInt(I.cnt)} ครั้ง · ${fmt(I.tot)} บาท  |  โอนออกทั้งหมด ${fmtInt(O.cnt)} ครั้ง · ${fmt(O.tot)} บาท  |  สุทธิ ${fmt(I.tot - O.tot)} บาท`;
+    sh.getCell('A3').font = f({ size: 12, bold: true });
+    // สรุปกราฟ
+    const ins = mfInsights(F, I, O, both);
+    const sHead = sh.getCell('A5'); sHead.value = 'สรุปกราฟ'; sHead.font = f({ size: 13, bold: true, color: COLORS.navy });
+    ins.forEach((t, k) => {
+      const r = 6 + k; sh.mergeCells(r, 1, r, 15);
+      const c = sh.getCell(r, 1); c.value = '•  ' + t; c.font = f({ size: 12 }); c.fill = fill('FFF2F7FB');
+      c.alignment = { vertical: 'middle', wrapText: true }; sh.getRow(r).height = 20;
+    });
+    let row = 6 + ins.length + 1;
+    const png = await sankeyPng();
+    if (png) {
+      const id = wb.addImage({ base64: png.base64, extension: 'png' });
+      const wPx = 1000, hPx = Math.round(png.h * wPx / png.w);
+      sh.addImage(id, { tl: { col: 0.2, row: row - 1 }, ext: { width: wPx, height: hPx } });
+      row = row + Math.ceil(hPx / 20) + 2;
+    } else {
+      sh.getCell(row, 1).value = 'ไม่สามารถวาดรูปกราฟได้ในเบราว์เซอร์นี้ — ดูข้อมูลจากตารางด้านล่าง'; sh.getCell(row, 1).font = f({ italic: true, color: COLORS.hint });
+      row += 2;
+    }
+    const HDR = ['อันดับ', 'บัญชี (ชื่อ / เลขบัญชี)', 'ธนาคาร', 'จำนวนครั้ง', 'ยอดรวม (บาท)', '% ของยอดทั้งหมด'];
+    const table = (c0, title, R, color, sideTxt) => {
+      const t = sh.getCell(row, c0); t.value = title; t.font = f({ size: 13, bold: true, color });
+      HDR.forEach((h, k) => { const c = sh.getCell(row + 1, c0 + k); c.value = h; c.font = f({ bold: true }); c.fill = fill(COLORS.hdr); c.border = box; c.alignment = { vertical: 'middle', horizontal: k === 1 || k === 2 ? 'left' : 'center', wrapText: true }; });
+      R.list.forEach((e, k) => {
+        const r = row + 2 + k, bank = e.bank ? e.bank.short : '';
+        const vals = [k + 1, e.label + (both.has(e.key) ? ' ↺' : ''), bank, e.n, Math.round(e.amt * 100) / 100, R.tot ? e.amt / R.tot : 0];
+        vals.forEach((v, j) => {
+          const c = sh.getCell(r, c0 + j); c.value = v; c.font = f({ bold: j === 4 }); c.border = box;
+          if (j === 4) c.numFmt = NUM; if (j === 5) c.numFmt = '0.0%'; if (j === 3) c.numFmt = '#,##0';
+          c.alignment = { vertical: 'middle', horizontal: j === 1 || j === 2 ? 'left' : 'center' };
+          c.fill = fill(sideTxt === 'in' ? 'FFE2EFDA' : 'FFFCE4D6');
+        });
+      });
+      const tr = row + 2 + R.list.length, shownN = R.list.reduce((s2, e) => s2 + e.n, 0);
+      const lab = sh.getCell(tr, c0 + 1); lab.value = `รวม ${R.list.length} บัญชีที่มีนัยยะ`; lab.font = f({ bold: true });
+      const n = sh.getCell(tr, c0 + 3); n.value = shownN; n.numFmt = '#,##0'; n.font = f({ bold: true }); n.alignment = { horizontal: 'center' };
+      const a = sh.getCell(tr, c0 + 4); a.value = Math.round(R.shownAmt * 100) / 100; a.numFmt = NUM; a.font = f({ bold: true }); a.alignment = { horizontal: 'center' };
+      const pc = sh.getCell(tr, c0 + 5); pc.value = R.tot ? R.shownAmt / R.tot : 0; pc.numFmt = '0.0%'; pc.font = f({ bold: true }); pc.alignment = { horizontal: 'center' };
+      for (let j = 0; j < 6; j++) { const c = sh.getCell(tr, c0 + j); c.fill = fill(COLORS.tot); c.border = box; }
+    };
+    table(1, 'โอนเข้าบัญชีเรา (ใครโอนเข้า)', I, 'FF138A5E', 'in');
+    table(8, 'เราโอนออกให้ (โอนให้ใคร)', O, 'FFC24A1C', 'out');
+    const end = row + 3 + Math.max(I.list.length, O.list.length);
+    sh.getCell(end + 1, 1).value = '↺ = บัญชีที่มีทั้งโอนเข้าและเราโอนออกไปให้ · % คิดจากยอดทั้งหมดของฝั่งนั้น · ธนาคารอ่านจากรหัสธนาคาร 3 หลักในรายละเอียดรายการ';
+    sh.getCell(end + 1, 1).font = f({ size: 11, color: COLORS.hint });
+    sh.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+  }
   function renderMfTable(bodyId, sumId, R, both) {
     const body = $(bodyId); body.textContent = '';
     R.all.forEach((e, i) => {
@@ -2591,6 +2721,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     try {
       const XL = await ensureExcelJS();
       const { wb } = buildWorkbook(XL, table, readSettings());
+      try { await addSankeySheet(wb); } catch (e) { console.warn('Sankey sheet skipped', e); }
       const buf = await wb.xlsx.writeBuffer();
       const cap = dlCap || await dlPromise;
       const typed = $('dlname').value.replace(/\.xlsx$/i, '').replace(/[\\/:*?"<>|]+/g, '').trim();
