@@ -228,6 +228,75 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 #reviewDlg #review{flex:1;min-height:0;display:flex}
 #reviewDlg .tablebox{flex:1;max-height:none;overflow:auto;border-top:0}
 #reviewDlg .dlg-foot{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--line)}
+/* Sankey: names -> this account -> names (band thickness = count of transactions) */
+#cut .sankey-wrap{position:relative;padding:8px 4px 4px;background:var(--surface-2)}
+#sankey{display:block;width:100%;min-width:680px;height:auto}
+#sankey .sk-band{fill-opacity:.32;transition:fill-opacity .12s}
+#sankey .sk-band:hover,#sankey .sk-band.on{fill-opacity:.62}
+#sankey.dim .sk-band:not(.on){fill-opacity:.12}
+#sankey .sk-node{cursor:default}
+#sankey text{font-family:var(--body);font-size:12.5px}
+#sankey .sk-lbl{fill:var(--ink)}
+#sankey .sk-cnt{fill:var(--muted);font-family:var(--mono);font-size:11.5px}
+#sankey .sk-head{fill:var(--muted);font-size:11.5px;letter-spacing:.04em}
+#sankey .sk-mid{fill:var(--ink);font-weight:600}
+.sk-tip{position:absolute;pointer-events:none;z-index:3;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;line-height:1.45;color:var(--ink);box-shadow:0 8px 20px rgba(0,0,0,.35);white-space:nowrap}
+.sk-tip b{font-weight:600}
+.sk-tip .m{color:var(--muted);font-family:var(--mono)}
+#cut .rank-table .sw{margin-right:8px}
+.flow-ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:4px 0 10px}
+.seg{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--bg)}
+.seg-l{font-size:12.5px;color:var(--muted);padding:0 10px 0 8px}
+.seg-b{appearance:none;border:0;background:transparent;color:var(--muted);font:500 13px var(--body);padding:6px 12px;border-radius:7px;cursor:pointer}
+.seg-b[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.seg-b:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.flow-f{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.flow-f select{background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;font:13px var(--body)}
+.flow-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted);margin:0 2px 10px}
+.flow-legend .lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.flow-legend .lg-rt{background:linear-gradient(90deg,#3987e5 0 25%,#d95926 25% 50%,#199e70 50% 75%,#c98500 75%)}
+.flow-f input[type=number]{width:74px;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 8px;font:13px var(--mono)}
+.rt-summary{margin:0 2px 10px;font-size:13.5px;color:var(--muted);line-height:1.7}
+.rt-summary b{color:var(--ink)}
+.rt-summary .rt-sig{color:var(--accent)}
+#sankey .sk-kept{fill:var(--accent);font-weight:600}
+#sankey .sk-band.sk-kept{fill-opacity:.5} #sankey .sk-band.sk-back{fill-opacity:.14}
+#sankey .sk-band.sk-kept:hover,#sankey .sk-band.sk-kept.on{fill-opacity:.8} #sankey .sk-band.sk-back:hover,#sankey .sk-band.sk-back.on{fill-opacity:.5}
+#sankey.dim .sk-band.sk-kept:not(.on),#sankey.dim .sk-band.sk-back:not(.on){fill-opacity:.07}
+#cut .rt-table td:last-child,#cut .rt-table th:last-child{text-align:left}
+#cut .verdict{font-size:12.5px;font-weight:600;white-space:nowrap}
+#cut .v-sig{color:var(--accent)} #cut .v-ns{color:var(--muted)}
+.flow-tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;margin-top:16px}
+.ft-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 2px 8px}
+.ft-head b{font-weight:600}
+#cut .rank-table th.sortable{cursor:pointer;user-select:none}
+#cut .rank-table th.sortable::after{content:" ↕";opacity:.4}
+#cut .rank-table th.sorted::after{content:" ↓";opacity:1;color:var(--accent)}
+#cut .rank-table tr.flow-row{cursor:pointer}
+#cut .rank-table tr.flow-row:hover td{background:var(--surface-2)}
+#cut .rank-table tr.sel td{background:var(--accent-soft)}
+#cut .rank-table .rt{color:var(--accent);font-weight:600}
+.party-detail{margin-top:16px;border:1px solid var(--accent);border-radius:12px;padding:12px 14px;background:var(--surface-2)}
+#cut .pd-table td.in{color:var(--good)} #cut .pd-table td.out{color:var(--muted)}
+#cut .pd-table td:nth-child(-n+3),#cut .pd-table th:nth-child(-n+3){text-align:left}
+#sankey .sk-lblg{cursor:pointer}
+.flow-top{display:flex;justify-content:space-between;align-items:center;gap:10px 16px;flex-wrap:wrap}
+.flow-top .subhead{margin-bottom:6px}
+#mfSvg{display:block;width:100%;min-width:760px;height:auto}
+#mfSvg text{font-family:var(--body);font-size:13px}
+#mfSvg .sk-lbl{fill:var(--ink);font-weight:500}
+#mfSvg .sk-cnt{fill:var(--muted);font-family:var(--mono);font-size:11.5px}
+#mfSvg .sk-head{fill:var(--muted);font-size:11.5px;letter-spacing:.04em}
+#mfSvg .mf-band{fill-opacity:.26;transition:fill-opacity .12s}
+#mfSvg .mf-band.on{fill-opacity:.6}
+#mfSvg.dim .mf-band:not(.on){fill-opacity:.08}
+#mfSvg .mf-lblg[data-k]{cursor:pointer}
+#mfSvg .mf-c1{fill:var(--bg);font-weight:600;font-size:13.5px}
+#mfSvg .mf-c2{fill:var(--bg);font-family:var(--mono);font-size:11px;opacity:.75}
+.mf-in{color:#3fc08f} .mf-out{color:#ee7a4f}
+.mf-scroll{max-height:380px;overflow:auto}
+#cut .rank-table tr.mf-both td.pname .nm::after{content:" ↺";color:var(--warn)}
+#cut .rank-table td.pname{white-space:normal}
 /* stage 3 popup */
 #cutDlg{width:min(1200px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);padding:0;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);color:var(--ink);box-shadow:0 24px 60px rgba(0,0,0,.4)}
 #cutDlg[open]{display:flex;flex-direction:column}
@@ -410,15 +479,44 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
         <tfoot id="monFoot"></tfoot>
       </table>
     </div>
-    <h3 class="subhead" id="rankhead">อันดับชื่อ/เลขบัญชี ที่มีรายการมากที่สุด</h3>
-    <p class="exnote" id="ranknote" style="margin-bottom:10px">แสดงเฉพาะชื่อหรือเลขบัญชีที่มีทั้งรายการฝากและรายการถอน นับทุกรายการในไฟล์ จับกลุ่มจากเลขบัญชีหรือชื่อในช่องรายละเอียด</p>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>#</th><th class="lft">ชื่อ / เลขบัญชี</th><th>ฝาก<br>ครั้ง</th><th>ยอดฝาก</th><th>ถอน<br>ครั้ง</th><th>ยอดถอน</th><th>รวม<br>ครั้ง</th></tr></thead>
-        <tbody id="rankBody"></tbody>
-      </table>
+    <div class="flow-top">
+      <h3 class="subhead" id="rankhead">แผนภาพการไหลของเงิน</h3>
     </div>
-    <div class="dlbar" style="margin-top:14px"><button class="btn ghost" type="button" id="rankmore"></button></div>
+    <p class="exnote v-flow" id="mfNote" style="margin-bottom:10px">ซ้าย = ใครโอนเข้าบัญชีเรา · ขวา = เราโอนให้ใคร · แสดงเฉพาะบัญชีที่มีนัยยะ คือยอดตั้งแต่ 3% ของยอดฝั่งนั้น (สูงสุดฝั่งละ 10 บัญชี) · ความหนาแถบ = ยอดเงิน</p>
+    <p class="exnote v-rt" id="ranknote" style="margin-bottom:10px" hidden>ดูเฉพาะบัญชีที่มีทั้งโอนเข้าและโอนออก ยอดที่โอนกลับคืนให้บัญชีเดิม (หักล้างกัน) ไม่ใช่รายได้จริง ส่วนที่คงไว้ในบัญชีคือยอดที่มีนัยยะ · ชี้เพื่อดูรายละเอียด คลิกเพื่อดูรายการ</p>
+    <div class="flow-ctl">
+      <label class="flow-f">เดือน <select id="flowMonth"><option value="all">ทุกเดือน</option></select></label>
+      <label class="flow-f v-rt" hidden>มีนัยยะเมื่อคงไว้ ≥ <input id="rtPct" type="number" min="0" max="100" step="5" value="20" inputmode="numeric"> % และ ≥ <input id="rtBaht" type="number" min="0" step="100" value="1000" inputmode="numeric"> ฿</label>
+      <label class="togg flow-f v-rt" for="rtAll" hidden><input type="checkbox" id="rtAll"><span>แสดงบัญชีที่โอนไปมาด้วย</span></label>
+      <label class="togg flow-f v-rt" for="flowEx" hidden><input type="checkbox" id="flowEx"><span>ไม่รวมรายการที่ถูกตัด</span></label>
+    </div>
+    <p class="rt-summary v-flow" id="mfSum"></p>
+    <div class="scroll sankey-wrap v-flow" id="mfWrap">
+      <svg id="mfSvg" role="img" aria-labelledby="rankhead mfNote"></svg>
+      <div class="sk-tip" id="mfTip" hidden></div>
+    </div>
+    <p class="rt-summary v-rt" id="rtSummary" hidden></p>
+    <div class="scroll sankey-wrap v-rt" id="sankeyWrap" hidden>
+      <svg id="sankey" role="img" aria-labelledby="rankhead ranknote"></svg>
+      <div class="sk-tip" id="skTip" hidden></div>
+    </div>
+    <p class="exnote" id="flowEmpty" hidden></p>
+    <div id="rtTableWrap" class="v-rt" style="margin-top:14px" hidden>
+      <div class="scroll"><table class="rank-table rt-table">
+        <thead><tr><th>#</th><th class="lft">บัญชี (ชื่อ / เลขบัญชี)</th><th>เข้า<br>(ครั้ง)</th><th>ยอดเข้า (฿)</th><th>ออก<br>(ครั้ง)</th><th>โอนกลับคืน (฿)</th><th>% โอนกลับ</th><th>คงไว้สุทธิ (฿)</th><th class="lft">ผล</th></tr></thead>
+        <tbody id="rtBody"></tbody></table></div>
+    </div>
+    <div class="dlbar v-rt" style="margin-top:12px" hidden>
+      <button class="btn ghost sm" type="button" id="rtCutNs" hidden>ตัดยอดฝากของบัญชีที่โอนไปมา</button>
+      <span class="muted small" id="rtCutMsg"></span>
+    </div>
+    <div class="party-detail" id="partyDetail" hidden>
+      <div class="ft-head"><b id="pdName"></b><button class="x" type="button" id="pdClose" aria-label="ปิด">×</button></div>
+      <div class="muted small" id="pdSum"></div>
+      <div class="scroll" style="margin-top:8px"><table class="rank-table pd-table">
+        <thead><tr><th class="lft">วันที่</th><th class="lft">เวลา</th><th class="lft">ทิศทาง</th><th>จำนวนเงิน (฿)</th><th class="lft">รายละเอียด</th></tr></thead>
+        <tbody id="pdBody"></tbody></table></div>
+    </div>
 
     <div class="detail" id="detail">
       <h3 class="t">รายการที่ตัดแต่ละเดือน</h3>
@@ -1933,6 +2031,8 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     name = name.replace(/\++/g, ' ').replace(/\b(QR\s*Payment|Payment|เงินโอน|เคชัน)\b/gi, ' ')
       .replace(/[()\[\]\/,:;|]+/g, ' ').replace(/\s+/g, ' ').trim();
     while (/(?:^|\s)\d{1,4}$/.test(name)) name = name.replace(/(?:^|\s+)\d{1,4}$/, '').trim();   // trailing branch code such as " 488"
+    name = name.replace(/^[-–~:\s]+/, '').trim();
+    if (acct && /^[A-Za-z0-9\-]+$/.test(name) && /\d/.test(name)) name = '';   // a reference code, not a name
     const bare = name.replace(TITLES, '').trim();
     const key = acct ? 'A:' + acct : 'N:' + (bare || raw).toLowerCase().replace(/\s/g, '').slice(0, 40);
     let text = bare ? name : raw;
@@ -1940,43 +2040,309 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     const label = acct && !bare ? acct : text + (acct ? ' (' + acct + ')' : '');
     return { key, label };
   }
-  let ranking = [], rankAll = false;
-  function buildRanking() {
-    const { rows, cols } = table;
-    const map = new Map();
-    rows.forEach(r => {
-      const p = cols.detail >= 0 ? party(r[cols.detail]) : null;
-      if (!p) return;
+  /* ===== เงินโอนเข้าแล้วโอนกลับ: มีนัยยะ (เงินคงไว้จริง) หรือแค่โอนไปมา =====
+     ดูเฉพาะบัญชีที่มีทั้งโอนเข้าและโอนออก ในช่วงที่เลือก
+     โอนกลับคืน = min(เข้า, ออก)  → ส่วนที่หักล้างกัน ไม่ใช่รายได้จริง
+     คงไว้สุทธิ = เข้า − โอนกลับคืน → มีนัยยะ เมื่อ ≥ เกณฑ์บาท และ ≥ เกณฑ์ % ของยอดเข้า */
+  const flow = { view: 'flow', top: 5, month: 'all', excludeCut: false, showAll: false, minPct: 20, minBaht: 1000, sel: null, data: null };
+  let sankeyRO = null;
+  const baht0 = n => Math.round(n).toLocaleString('en-US');
+  const escH = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function initFlow() {
+    const ms = new Set();
+    table.rows.forEach(r => { const d = r[table.cols.dt]; if (d instanceof Date) ms.add(d.getUTCFullYear() * 12 + d.getUTCMonth()); });
+    const sel = $('flowMonth'); const prev = sel.value;
+    sel.innerHTML = '<option value="all">ทุกเดือน</option>' + [...ms].sort((a, b) => a - b)
+      .map(k => `<option value="${k}">${TH_MONTHS[k % 12]} ${Math.floor(k / 12)}</option>`).join('');
+    sel.value = [...sel.options].some(o => o.value === prev) ? prev : 'all';
+    flow.month = sel.value; flow.sel = null;
+  }
+  function computeFlow() {
+    const { rows, cols } = table, res = lastRes;
+    const inMap = new Map(), outMap = new Map();
+    rows.forEach((r, i) => {
+      const d = r[cols.dt];
+      if (flow.month !== 'all' && !(d instanceof Date && d.getUTCFullYear() * 12 + d.getUTCMonth() === +flow.month)) return;
+      if (flow.excludeCut && res && (res.L[i] || res.M[i] || res.N[i] || res.O[i])) return;
       const g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0;
       if (g <= 0 && w <= 0) return;
-      let e = map.get(p.key);
-      if (!e) { e = { label: p.label, dc: 0, ds: 0, wc: 0, ws: 0 }; map.set(p.key, e); }
-      if (g > 0) { e.dc++; e.ds += g; } else { e.wc++; e.ws += w; }
+      const p = cols.detail >= 0 ? party(r[cols.detail]) : null;
+      if (!p) return;
+      const m = g > 0 ? inMap : outMap;
+      let e = m.get(p.key); if (!e) { e = { key: p.key, label: p.label, n: 0, amt: 0, idx: [] }; m.set(p.key, e); }
+      e.n++; e.amt += g > 0 ? g : w; e.idx.push(i);
     });
-    ranking = [...map.values()].filter(e => e.dc > 0 && e.wc > 0).sort((a, b) => (b.dc + b.wc) - (a.dc + a.wc) || (b.ds + b.ws) - (a.ds + a.ws));
-    rankAll = false;
-    renderRanking();
+    // accounts with money both in and out
+    const accts = [];
+    inMap.forEach((a, key) => {
+      const b = outMap.get(key); if (!b) return;
+      const back = Math.min(a.amt, b.amt), kept = a.amt - back, extra = b.amt - back;
+      const sig = kept >= flow.minBaht && kept >= a.amt * flow.minPct / 100;
+      accts.push({ key, label: a.label, inN: a.n, inAmt: a.amt, outN: b.n, outAmt: b.amt, back, kept, extra, pctBack: a.amt ? back / a.amt : 0, sig });
+    });
+    accts.sort((x, y) => (y.sig - x.sig) || y.kept - x.kept || y.inAmt - x.inAmt);
+    const sig = accts.filter(a => a.sig), ns = accts.filter(a => !a.sig);
+    const sum = (list, f) => list.reduce((s, a) => s + f(a), 0);
+    flow.data = { inMap, outMap, accts, sig, ns, totIn: sum([...inMap.values()], e => e.amt),
+      sigKept: sum(sig, a => a.kept), sigBack: sum(sig, a => a.back), nsIn: sum(ns, a => a.inAmt), nsBack: sum(ns, a => a.back) };
+    return flow.data;
   }
-  function renderRanking() {
-    const body = $('rankBody'); body.textContent = '';
-    if (!ranking.length) {
-      $('rankhead').hidden = false; $('ranknote').hidden = false; $('rankmore').hidden = true;
-      const tr = document.createElement('tr'); const td = document.createElement('td');
-      td.colSpan = 7; td.className = 'pname'; td.textContent = 'ไม่มีชื่อหรือเลขบัญชีที่มีทั้งฝากและถอนในไฟล์นี้';
-      tr.append(td); body.append(tr); return;
-    }
-    $('rankhead').hidden = false; $('ranknote').hidden = false;
-    const list = rankAll ? ranking : ranking.slice(0, 20);
-    list.forEach((e, i) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${i + 1}</td><td class="pname"></td><td>${fmtInt(e.dc)}</td><td>${fmt(e.ds)}</td>` +
-        `<td>${fmtInt(e.wc)}</td><td>${fmt(e.ws)}</td><td><b>${fmtInt(e.dc + e.wc)}</b></td>`;
-      tr.querySelector('.pname').textContent = e.label;
+  function applyView() {
+    document.querySelectorAll('#cut .v-flow').forEach(e => { e.hidden = flow.view !== 'flow'; });
+    document.querySelectorAll('#cut .v-rt').forEach(e => { e.hidden = flow.view !== 'rt'; });
+    document.querySelectorAll('#cut .seg-b[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === flow.view)));
+  }
+  function renderFlow() {
+    if (!table || !lastRes) return;
+    const F = computeFlow();
+    applyView();
+    if (flow.view === 'flow') { $('flowEmpty').hidden = true; renderMoneyFlow(F); renderPartyDetail(F); return; }
+    const shown = flow.showAll ? F.accts : F.sig;
+    // one-line verdict
+    $('rtSummary').innerHTML = !F.accts.length
+      ? 'ไม่พบบัญชีที่มีทั้งโอนเข้าและโอนออกในช่วงที่เลือก'
+      : `บัญชีที่โอนเข้าแล้วมีการโอนกลับ <b>${fmtInt(F.accts.length)}</b> บัญชี · ` +
+        `<span class="rt-sig">มีนัยยะ ${fmtInt(F.sig.length)} บัญชี · คงไว้สุทธิ ${fmt(F.sigKept)} ฿</span> · ` +
+        `<span class="rt-ns">โอนไปมา ${fmtInt(F.ns.length)} บัญชี · ยอดเข้า ${fmt(F.nsIn)} ฿ (ไม่ใช่รายได้จริง)</span>`;
+    $('rtCutNs').hidden = !F.ns.length;
+    renderSankey(F, shown);
+    renderRtTable(F, shown);
+    renderPartyDetail(F);
+  }
+  function renderSankey(F, shown) {
+    const svg = $('sankey'), wrap = $('sankeyWrap'), tip = $('skTip');
+    const NS = 'http://www.w3.org/2000/svg';
+    svg.textContent = ''; tip.hidden = true;
+    const list = shown.slice(0, 12);
+    wrap.hidden = !list.length;
+    $('flowEmpty').hidden = !!list.length || !F.accts.length;
+    $('flowEmpty').textContent = F.accts.length && !F.sig.length && !flow.showAll ? 'ไม่มีบัญชีที่มีนัยยะตามเกณฑ์ ทุกบัญชีเป็นการโอนไปมา' : 'ไม่มีข้อมูลตามตัวกรอง';
+    if (!list.length) return;
+    const kept = list.reduce((s, a) => s + a.kept, 0), back = list.reduce((s, a) => s + a.back, 0), inTot = kept + back;
+    const W = 1000, LBL = 300, NW = 10, RW = 12, GAP = 10, TOP = 40, BOT = 12, SLOT = 34;
+    const k = Math.max(200, list.length * 42) / Math.max(inTot, 1);
+    const colL = list.reduce((s, a) => s + Math.max(a.inAmt * k, SLOT), 0) + (list.length - 1) * GAP;
+    const colR = Math.max(kept * k, kept ? SLOT : 0) + Math.max(back * k, back ? SLOT : 0) + (kept && back ? 40 : 0);
+    const colH = Math.max(colL, colR);
+    svg.setAttribute('viewBox', `0 0 ${W} ${TOP + colH + BOT}`);
+    const xL = LBL, xR = W - 260;
+    const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); parent.append(e); return e; };
+    const txt = (x, y, str, cls, anchor, parent = svg) => { const t = el('text', { x, y, class: cls, 'text-anchor': anchor || 'start', 'dominant-baseline': 'middle' }, parent); t.textContent = str; return t; };
+    txt(xL + NW / 2, 14, 'โอนเข้าจากบัญชี', 'sk-head', 'middle');
+    txt(xR + RW / 2, 14, 'ปลายทางของเงินที่รับเข้ามา', 'sk-head', 'middle');
+    const bands = el('g', {}), nodesG = el('g', {}), labels = el('g', {});
+    // right: two outcome nodes
+    let ry = TOP + (colH - colR) / 2;
+    const out = {};
+    [['kept', kept, 'คงไว้ในบัญชี (เงินเข้าสุทธิ)', 'var(--accent)'], ['back', back, 'โอนกลับคืน (หักล้างกัน)', '#6b7480']].forEach(([key, v, name, color]) => {
+      if (!v) return;
+      const h = v * k, slot = Math.max(h, SLOT), ny = ry + (slot - h) / 2;
+      out[key] = { y: ny, cur: ny, color };
+      const tipHtml = `<b>${name}</b><br><span class="m">${fmt(v)} ฿ · ${Math.round(100 * v / inTot)}% ของยอดเข้าจากบัญชีเหล่านี้</span>`;
+      const r = el('rect', { x: xR, y: ny, width: RW, height: Math.max(h, 2), rx: 2, fill: color, class: 'sk-node', 'data-o': key }, nodesG); r.dataset.tip = tipHtml;
+      const g = el('g', {}, labels); g.dataset.tip = tipHtml;
+      txt(xR + RW + 10, ny + h / 2 - 8, name, 'sk-lbl' + (key === 'kept' ? ' sk-kept' : ''), 'start', g);
+      txt(xR + RW + 10, ny + h / 2 + 8, `${baht0(v)} ฿ · ${Math.round(100 * v / inTot)}%`, 'sk-cnt', 'start', g);
+      ry += slot + 40;
+    });
+    // left: accounts, each split into kept / returned
+    let y = TOP + (colH - colL) / 2;
+    const fits = [];
+    list.forEach((a, i) => {
+      const h = Math.max(2, a.inAmt * k), slot = Math.max(a.inAmt * k, SLOT), ny = y + (slot - h) / 2;
+      const verdict = a.sig ? 'มีนัยยะ' : 'โอนไปมา';
+      const tipHtml = `<b>${i + 1}. ${escH(a.label)}</b> · ${verdict}<br>` +
+        `โอนเข้า <span class="m">${fmtInt(a.inN)} ครั้ง · ${fmt(a.inAmt)} ฿</span><br>` +
+        `โอนกลับคืน <span class="m">${fmt(a.back)} ฿ (${Math.round(100 * a.pctBack)}%)</span><br>` +
+        `คงไว้สุทธิ <span class="m">${fmt(a.kept)} ฿</span>` + (a.extra > 0 ? `<br>โอนออกเกินที่รับมา <span class="m">${fmt(a.extra)} ฿</span>` : '') +
+        `<br><span class="m">คลิกเพื่อดูรายการ</span>`;
+      let cy = ny;
+      [['kept', a.kept], ['back', a.back]].forEach(([key, v]) => {
+        if (!v || !out[key]) return;
+        const bh = v * k, x0 = xL + NW, x1 = xR, xm = (x0 + x1) / 2, y0 = cy, y1 = out[key].cur;
+        const p = el('path', { d: `M${x0},${y0} C${xm},${y0} ${xm},${y1} ${x1},${y1} L${x1},${y1 + bh} C${xm},${y1 + bh} ${xm},${y0 + bh} ${x0},${y0 + bh} Z`,
+          fill: out[key].color, class: 'sk-band sk-' + key + (flow.sel === a.key ? ' on' : ''), 'data-k': a.key }, bands);
+        p.dataset.tip = tipHtml;
+        cy += bh; out[key].cur += bh;
+      });
+      const r = el('rect', { x: xL, y: ny, width: NW, height: h, rx: 2, fill: a.sig ? 'var(--accent)' : '#6b7480', class: 'sk-node', 'data-k': a.key }, nodesG); r.dataset.tip = tipHtml;
+      const g = el('g', { class: 'sk-lblg', 'data-k': a.key }, labels); g.dataset.tip = tipHtml;
+      const t1 = txt(xL - 10, ny + h / 2 - 8, '', 'sk-lbl', 'end', g);
+      const head = `${i + 1}. `, tail = a.sig ? '' : ' · โอนไปมา';
+      t1.textContent = head + a.label + tail;
+      txt(xL - 10, ny + h / 2 + 8, `เข้า ${fmtInt(a.inN)} ครั้ง · ${baht0(a.inAmt)} ฿ · คงไว้ ${baht0(a.kept)} ฿`, 'sk-cnt', 'end', g);
+      fits.push(() => { let s = a.label; t1.textContent = head + s + tail; while (t1.getComputedTextLength() > LBL - 20 && s.length > 4) { s = s.slice(0, -2); t1.textContent = head + s.trim() + '…' + tail; } });
+      y += slot + GAP;
+    });
+    if (shown.length > list.length) txt(xL - 10, TOP + colH + 4, `+ อีก ${fmtInt(shown.length - list.length)} บัญชีในตาราง`, 'sk-cnt', 'end');
+    if (flow.sel) svg.classList.add('dim'); else svg.classList.remove('dim');
+    const runFits = () => { if (svg.getBoundingClientRect().width > 0) { fits.forEach(f => { try { f(); } catch (e) {} }); return true; } return false; };
+    if (sankeyRO) sankeyRO.disconnect();
+    if (!runFits() && 'ResizeObserver' in window) { sankeyRO = new ResizeObserver(() => { if (runFits()) sankeyRO.disconnect(); }); sankeyRO.observe(svg); }
+    const light = key => svg.querySelectorAll('.sk-band').forEach(b => b.classList.toggle('on', b.getAttribute('data-k') === key));
+    svg.onmousemove = e => {
+      const t = e.target.closest('[data-tip]');
+      if (!t) { light(flow.sel); svg.classList.toggle('dim', !!flow.sel); tip.hidden = true; return; }
+      const key = t.getAttribute('data-k');
+      if (key) { svg.classList.add('dim'); light(key); } else { svg.classList.toggle('dim', !!flow.sel); light(flow.sel); }
+      tip.innerHTML = t.dataset.tip; tip.hidden = false;
+      const r = wrap.getBoundingClientRect();
+      let x = e.clientX - r.left + wrap.scrollLeft + 14; const yy = e.clientY - r.top + 12;
+      if (x + tip.offsetWidth > wrap.scrollLeft + r.width - 6) x = e.clientX - r.left + wrap.scrollLeft - tip.offsetWidth - 14;
+      tip.style.left = x + 'px'; tip.style.top = yy + 'px';
+    };
+    svg.onmouseleave = () => { light(flow.sel); svg.classList.toggle('dim', !!flow.sel); tip.hidden = true; };
+    svg.onclick = e => { const t = e.target.closest('[data-k]'); if (t) selectParty(t.getAttribute('data-k')); };
+  }
+
+  /* ===== ใครโอนเข้า → บัญชีเรา → เราโอนให้ใคร (ความหนาแถบ = ยอดเงิน) ===== */
+  let mfRO = null; const MF_MIN = 0.03, MF_MAX = 10;
+  const IN_C = '#199e70', OUT_C = '#d95926', OTHER_IN = '#2f6b57', OTHER_OUT = '#8a4a30';
+  function mfRank(map, top) {
+    const all = [...map.values()].sort((a, b) => b.amt - a.amt || b.n - a.n);
+    const tot = all.reduce((s, e) => s + e.amt, 0);
+    // มีนัยยะ = ยอดตั้งแต่ 3% ของยอดฝั่งนั้น (อย่างน้อย 1, สูงสุด 10 บัญชี) · ไม่มีกลุ่ม "อื่นๆ"
+    const list = all.filter((e, i) => i === 0 || e.amt >= tot * MF_MIN).slice(0, top).map((e, i) => ({ ...e, rank: i + 1 }));
+    const shownAmt = list.reduce((s, e) => s + e.amt, 0);
+    return { all, list, tot, shownAmt, cnt: all.reduce((s, e) => s + e.n, 0) };
+  }
+  function renderMoneyFlow(F) {
+    const svg = $('mfSvg'), wrap = $('mfWrap'), tip = $('mfTip'), NS = 'http://www.w3.org/2000/svg';
+    svg.textContent = ''; tip.hidden = true;
+    const I = mfRank(F.inMap, MF_MAX), O = mfRank(F.outMap, MF_MAX);
+    const both = new Set([...F.inMap.keys()].filter(k => F.outMap.has(k)));
+    $('mfSum').innerHTML = !I.all.length && !O.all.length ? 'ไม่มีรายการโอนเข้า–ออกตามตัวกรองที่เลือก'
+      : `<span class="mf-in">โอนเข้าทั้งหมด <b>${fmtInt(I.cnt)}</b> ครั้ง · <b>${fmt(I.tot)}</b> ฿</span> — กราฟแสดง ${fmtInt(I.list.length)} บัญชีหลัก = ${Math.round(100 * I.shownAmt / (I.tot || 1))}% ของยอดเข้า<br>` +
+        `<span class="mf-out">โอนออกทั้งหมด <b>${fmtInt(O.cnt)}</b> ครั้ง · <b>${fmt(O.tot)}</b> ฿</span> — กราฟแสดง ${fmtInt(O.list.length)} บัญชีหลัก = ${Math.round(100 * O.shownAmt / (O.tot || 1))}% ของยอดออก` +
+        ([...I.list, ...O.list].some(e => both.has(e.key)) ? `<br><span class="muted">↺ = บัญชีที่โอนเข้ามาและเราโอนกลับไปด้วย</span>` : '');
+    wrap.hidden = !I.list.length && !O.list.length;
+    if (wrap.hidden) return;
+    const W = 1000, LBL = 285, NW = 8, CW = 104, GAP = 10, TOP = 34, BOT = 10, SLOT = 42;
+    const xL = LBL + 10, xC = W / 2 - CW / 2, xR = W - LBL - 10 - NW;
+    const big = Math.max(I.shownAmt, O.shownAmt, 1), nMax = Math.max(I.list.length, O.list.length, 1);
+    const k = Math.max(300, nMax * 50) / big;
+    const colH = list => list.reduce((s, e) => s + Math.max(e.amt * k, SLOT), 0) + Math.max(0, list.length - 1) * GAP;
+    const cH = big * k, H = Math.max(colH(I.list), colH(O.list), cH);
+    svg.setAttribute('viewBox', `0 0 ${W} ${TOP + H + BOT}`);
+    const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); parent.append(e); return e; };
+    const txt = (x, y, str, cls, anchor, parent = svg) => { const t = el('text', { x, y, class: cls, 'text-anchor': anchor || 'start', 'dominant-baseline': 'middle' }, parent); t.textContent = str; return t; };
+    txt(xL + NW / 2, 12, 'ใครโอนเข้าบัญชีเรา', 'sk-head', 'middle');
+    txt(xR + NW / 2, 12, 'เราโอนให้ใคร', 'sk-head', 'middle');
+    const bands = el('g', {}), nodes = el('g', {}), labels = el('g', {});
+    const cTop = TOP + (H - cH) / 2;
+    el('rect', { x: xC, y: cTop, width: CW, height: Math.max(cH, 60), rx: 6, fill: 'var(--ink)' }, nodes);
+    const cMid = cTop + Math.max(cH, 60) / 2;
+    txt(xC + CW / 2, cMid, 'บัญชีเรา', 'mf-c1', 'middle', nodes);
+    const fits = [];
+    const side = (R, left) => {
+      const tot = R.tot || 1;
+      let y = TOP + (H - colH(R.list)) / 2, cy = cTop + (cH - R.shownAmt * k) / 2;
+      R.list.forEach(e => {
+        const h = Math.max(2, e.amt * k), slot = Math.max(e.amt * k, SLOT), ny = y + (slot - h) / 2, bh = e.amt * k;
+        const color = e.key ? (left ? IN_C : OUT_C) : (left ? OTHER_IN : OTHER_OUT);
+        const pct = Math.round(1000 * e.amt / tot) / 10;
+        const tipHtml = `<b>${e.key ? e.rank + '. ' : ''}${escH(e.label)}</b>${e.key && both.has(e.key) ? ' ↺' : ''}<br>` +
+          `${left ? 'โอนเข้าบัญชีเรา' : 'เราโอนให้'} <span class="m">${fmtInt(e.n)} ครั้ง · ${fmt(e.amt)} ฿</span><br>` +
+          `<span class="m">${pct}% ของยอด${left ? 'เข้า' : 'ออก'}ทั้งหมด · เฉลี่ย ${fmt(e.amt / e.n)} ฿/ครั้ง</span>` +
+          (e.key && both.has(e.key) ? `<br>${left ? 'เราโอนกลับให้' : 'บัญชีนี้โอนเข้ามา'} <span class="m">${fmtInt((left ? F.outMap : F.inMap).get(e.key).n)} ครั้ง · ${fmt((left ? F.outMap : F.inMap).get(e.key).amt)} ฿</span>` : '') +
+          (e.key ? '<br><span class="m">คลิกเพื่อดูรายการ</span>' : '');
+        const nx = left ? xL : xR, x0 = left ? xL + NW : xC + CW, x1 = left ? xC : xR, xm = (x0 + x1) / 2;
+        const ya = left ? ny : cy, yb = left ? cy : ny;
+        const band = el('path', { d: `M${x0},${ya} C${xm},${ya} ${xm},${yb} ${x1},${yb} L${x1},${yb + bh} C${xm},${yb + bh} ${xm},${ya + bh} ${x0},${ya + bh} Z`,
+          fill: color, class: 'mf-band' + (e.key && flow.sel === e.key ? ' on' : '') }, bands);
+        if (e.key) band.setAttribute('data-k', e.key);
+        band.dataset.tip = tipHtml;
+        const r = el('rect', { x: nx, y: ny, width: NW, height: h, rx: 2, fill: color }, nodes); r.dataset.tip = tipHtml; if (e.key) r.setAttribute('data-k', e.key);
+        const g = el('g', { class: 'mf-lblg' }, labels); g.dataset.tip = tipHtml; if (e.key) g.setAttribute('data-k', e.key);
+        const lx = left ? xL - 10 : xR + NW + 10, anchor = left ? 'end' : 'start';
+        const head = e.key ? e.rank + '. ' : '', mark = e.key && both.has(e.key) ? ' ↺' : '';
+        const t1 = txt(lx, ny + h / 2 - 8, head + e.label + mark, 'sk-lbl', anchor, g);
+        txt(lx, ny + h / 2 + 9, `${fmtInt(e.n)} ครั้ง · ${fmt(e.amt)} ฿ · ${Math.round(100 * e.amt / tot)}%`, 'sk-cnt', anchor, g);
+        fits.push(() => { let s = e.label; t1.textContent = head + s + mark; while (t1.getComputedTextLength() > LBL - 8 && s.length > 4) { s = s.slice(0, -2); t1.textContent = head + s.trim() + '…' + mark; } });
+        y += slot + GAP; cy += bh;
+      });
+    };
+    side(I, true); side(O, false);
+    svg.classList.toggle('dim', !!flow.sel);
+    const runFits = () => { if (svg.getBoundingClientRect().width > 0) { fits.forEach(f => { try { f(); } catch (e) {} }); return true; } return false; };
+    if (mfRO) mfRO.disconnect();
+    if (!runFits() && 'ResizeObserver' in window) { mfRO = new ResizeObserver(() => { if (runFits()) mfRO.disconnect(); }); mfRO.observe(svg); }
+    const light = (key, node) => svg.querySelectorAll('.mf-band').forEach(b => b.classList.toggle('on', key ? b.getAttribute('data-k') === key : b === node));
+    const rest = () => { light(flow.sel); svg.classList.toggle('dim', !!flow.sel); tip.hidden = true; };
+    svg.onmousemove = ev => {
+      const t = ev.target.closest('[data-tip]');
+      if (!t) return rest();
+      const key = t.getAttribute('data-k');
+      svg.classList.add('dim'); light(key, t.classList.contains('mf-band') ? t : null);
+      tip.innerHTML = t.dataset.tip; tip.hidden = false;
+      const r = wrap.getBoundingClientRect();
+      let x = ev.clientX - r.left + wrap.scrollLeft + 14; const yy = ev.clientY - r.top + 12;
+      if (x + tip.offsetWidth > wrap.scrollLeft + r.width - 6) x = ev.clientX - r.left + wrap.scrollLeft - tip.offsetWidth - 14;
+      tip.style.left = x + 'px'; tip.style.top = yy + 'px';
+    };
+    svg.onmouseleave = rest;
+    svg.onclick = ev => { const t = ev.target.closest('[data-k]'); if (t) selectParty(t.getAttribute('data-k')); };
+  }
+  function renderMfTable(bodyId, sumId, R, both) {
+    const body = $(bodyId); body.textContent = '';
+    R.all.forEach((e, i) => {
+      const tr = document.createElement('tr'); tr.dataset.k = e.key;
+      tr.className = 'flow-row' + (flow.sel === e.key ? ' sel' : '') + (both.has(e.key) ? ' mf-both' : '');
+      tr.innerHTML = `<td>${i + 1}</td><td class="pname"><span class="nm"></span></td><td>${fmtInt(e.n)}</td><td>${fmt(e.amt)}</td><td>${R.tot ? (100 * e.amt / R.tot).toFixed(1) : 0}%</td>`;
+      tr.querySelector('.nm').textContent = e.label;
       body.append(tr);
     });
-    const more = $('rankmore');
-    more.hidden = ranking.length <= 20;
-    more.textContent = rankAll ? 'แสดงเฉพาะ 20 อันดับแรก' : `แสดงทั้งหมด ${fmtInt(ranking.length)} รายชื่อ`;
+    $(sumId).textContent = `${fmtInt(R.all.length)} บัญชี · ${fmtInt(R.cnt)} ครั้ง · ${fmt(R.tot)} ฿`;
+  }
+  function renderRtTable(F, shown) {
+    const body = $('rtBody'); body.textContent = '';
+    shown.forEach((a, i) => {
+      const tr = document.createElement('tr'); tr.dataset.k = a.key; tr.className = 'flow-row' + (flow.sel === a.key ? ' sel' : '');
+      tr.innerHTML = `<td>${i + 1}</td><td class="pname"><span class="nm"></span></td>` +
+        `<td>${fmtInt(a.inN)}</td><td>${fmt(a.inAmt)}</td><td>${fmtInt(a.outN)}</td><td>${fmt(a.back)}</td><td>${Math.round(100 * a.pctBack)}%</td>` +
+        `<td><b>${fmt(a.kept)}</b></td><td class="lft"><span class="verdict ${a.sig ? 'v-sig' : 'v-ns'}">${a.sig ? '● มีนัยยะ' : '○ โอนไปมา'}</span></td>`;
+      tr.querySelector('.nm').textContent = a.label;
+      body.append(tr);
+    });
+    $('rtTableWrap').hidden = !shown.length;
+  }
+  function selectParty(key) {
+    flow.sel = flow.sel === key ? null : key;
+    renderFlow();
+    if (flow.sel) { const d = $('partyDetail'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
+  }
+  function renderPartyDetail(F) {
+    const box = $('partyDetail');
+    if (!flow.sel) { box.hidden = true; return; }
+    const a = F.inMap.get(flow.sel), b = F.outMap.get(flow.sel);
+    if (!a && !b) { flow.sel = null; box.hidden = true; return; }
+    const { rows, cols } = table;
+    const idx = [...(a ? a.idx : []), ...(b ? b.idx : [])].sort((x, y) => x - y);
+    $('pdName').textContent = (a || b).label;
+    $('pdSum').textContent = `เข้า ${a ? fmtInt(a.n) : 0} ครั้ง · ${fmt(a ? a.amt : 0)} ฿  |  ออก ${b ? fmtInt(b.n) : 0} ครั้ง · ${fmt(b ? b.amt : 0)} ฿  |  สุทธิ ${fmt((a ? a.amt : 0) - (b ? b.amt : 0))} ฿`;
+    const tb = $('pdBody'); tb.textContent = '';
+    idx.forEach(i => {
+      const r = rows[i], g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0, d = r[cols.dt];
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${d instanceof Date ? `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}` : ''}</td><td>${cols.time >= 0 ? escH(timeText(r[cols.time])) : ''}</td>` +
+        `<td class="${g > 0 ? 'in' : 'out'}">${g > 0 ? 'เข้า' : 'ออก'}</td><td>${fmt(g > 0 ? g : w)}</td><td class="pname"></td>`;
+      tr.lastChild.textContent = cols.detail >= 0 && r[cols.detail] != null ? String(r[cols.detail]) : '';
+      tb.append(tr);
+    });
+    box.hidden = false;
+  }
+  // put the back-and-forth accounts into "ตัดยอดฝากตามชื่อ" (up to the 10-name limit)
+  function cutBackAndForth() {
+    const F = flow.data; if (!F) return;
+    const cur = $('names').value.split(/\n/).map(s => s.trim()).filter(Boolean);
+    let added = 0;
+    for (const a of F.ns) {
+      if (cur.length >= 10) break;
+      const term = a.key.startsWith('A:') ? a.key.slice(2) : a.label;
+      if (!cur.includes(term)) { cur.push(term); added++; }
+    }
+    $('names').value = cur.join('\n'); update();
+    $('rtCutMsg').textContent = added ? `เพิ่ม ${added} บัญชีในตัวเลือก “ตัดยอดฝากตามชื่อ” แล้ว` : 'ช่องชื่อเต็มแล้ว (สูงสุด 10 ชื่อ) หรือเพิ่มไว้ครบแล้ว';
   }
   function timeText(v) {
     if (v == null) return '';
@@ -2006,7 +2372,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   function loadTable(t, base) {
     table = t; fileBase = base || 'Statement';
     buildTypeList();
-    buildRanking();
+    initFlow();
     $('step2').hidden = false; $('step3').hidden = false;
     const fn = $('dlname'); if (!fn.dataset.touched) fn.value = fileBase + '_Cleanup';
     update();
@@ -2082,6 +2448,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     });
     $('monFoot').innerHTML = `<tr><td>รวม</td><td>${fmt(tot.t)}</td>` + tot.d.map(x => `<td class="neg">${fmt(-x)}</td>`).join('') + `<td class="net">${fmt(tot.net)}</td></tr>`;
     lastRes = res;
+    renderFlow();
     renderDetail();
   }
 
@@ -2197,13 +2564,23 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   $('dlname').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); download(); } });
   window.__cut.reset = () => {
     table = null; lastRes = null; monthIdx = 0;
+    Object.assign(flow, { view: 'flow', top: 5, month: 'all', excludeCut: false, showAll: false, minPct: 20, minBaht: 1000, sel: null });
+    $('flowEx').checked = false; $('rtAll').checked = false; applyView(); $('rtPct').value = 20; $('rtBaht').value = 1000; $('rtCutMsg').textContent = '';
     for (const id of ['names', 'exnames', 'gt', 'lt']) $(id).value = '';
     for (const id of ['types', 'extypes']) { $(id).textContent = ''; delete $(id).dataset.ready; }
     const fn = $('dlname'); fn.value = ''; delete fn.dataset.touched;
     $('status').textContent = ''; $('hidewd').checked = false;
     readNames('names', 'ncount'); readNames('exnames', 'excount');
   };
-  $('rankmore').addEventListener('click', () => { rankAll = !rankAll; renderRanking(); });
+  $('flowMonth').addEventListener('change', e => { flow.month = e.target.value; renderFlow(); });
+  $('flowEx').addEventListener('change', e => { flow.excludeCut = e.target.checked; renderFlow(); });
+  $('rtAll').addEventListener('change', e => { flow.showAll = e.target.checked; renderFlow(); });
+  $('rtPct').addEventListener('input', e => { const v = +e.target.value; if (isFinite(v)) { flow.minPct = Math.max(0, Math.min(100, v)); renderFlow(); } });
+  $('rtBaht').addEventListener('input', e => { const v = +e.target.value; if (isFinite(v)) { flow.minBaht = Math.max(0, v); renderFlow(); } });
+  $('rtCutNs').addEventListener('click', cutBackAndForth);
+
+  $('pdClose').addEventListener('click', () => { flow.sel = null; renderFlow(); });
+  $('rtBody').addEventListener('click', e => { const tr = e.target.closest('tr.flow-row'); if (tr) selectParty(tr.dataset.k); });
   $('hidewd').addEventListener('change', renderDetail);
   const goMonth = step => {
     monthIdx += step; renderDetail();
