@@ -239,6 +239,12 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 #reviewDlg h3{font-size:18px;color:var(--warn);margin:2px 0}
 #reviewDlg .dlg-close{font-size:22px}
 #reviewDlg .dlg-sum{padding:10px 18px;border-bottom:1px solid var(--line)}
+#reviewDlg .dlg-acts{margin-top:8px}
+#tablebox td.desc{max-width:200px}
+#tablebox th:nth-child(9),#tablebox td:nth-child(9){display:none}
+#tablebox td.warn-text{max-width:360px;white-space:normal}
+#tablebox .gapacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+#tablebox .gapacts .btn{white-space:nowrap}
 #reviewDlg #review{flex:1;min-height:0;display:flex}
 #reviewDlg .tablebox{flex:1;max-height:none;overflow:auto;border-top:0}
 #reviewDlg .dlg-foot{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--line)}
@@ -406,7 +412,8 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
       <div>
         <div class="dlg-kicker">2 · ตรวจความถูกต้อง</div>
         <h3 id="reviewTitle"></h3>
-        <div class="muted small">ยอดคงเหลือไม่ต่อเนื่องและแก้อัตโนมัติไม่ได้ · ดับเบิลคลิกที่ช่องเพื่อแก้ แถวที่ถูกต้องแล้วจะหายไปเอง</div>
+        <div class="muted small">ยอดคงเหลือไม่ต่อเนื่องและแก้อัตโนมัติไม่ได้ · เลือกได้ 3 ทาง: <b>เพิ่มรายการที่หาย</b> (ไฟล์ต้นฉบับตกรายการไป) · <b>ยืนยันยอดตามไฟล์</b> (ยอดในไฟล์ถูก ให้เริ่มนับต่อจากยอดนี้) · ดับเบิลคลิกที่ช่องเพื่อพิมพ์แก้เอง — แถวที่ผ่านแล้วจะหายไปเอง</div>
+        <div class="dlg-acts"><button class="btn sm ghost" id="skipAllBtn" type="button">ยืนยันยอดตามไฟล์ทั้งหมด</button></div>
       </div>
       <button class="x dlg-close" id="dlgClose" type="button" aria-label="ปิด">×</button>
     </div>
@@ -1032,6 +1039,7 @@ function verify(rows){
     row.warn=""; row.ok=true; if(row.fix) fixed++;
     if(row.opening){ prev=row.bal; continue; }
     if(row.dayOk){ prev=row.groupEnd; continue; }   // day reconciles in the bank's posting order
+    if(row.deferred){ row.warn = "ธนาคารบันทึกยอดนี้ตอนสิ้นเดือน (พิมพ์ตามวันที่ได้รับ) — ไม่นับในลำดับยอดคงเหลือ"; continue; }
     if(row.bal==null){
       row.warn = prev==null ? "ไม่มียอดคงเหลือในไฟล์ต้นฉบับ" : "";
       if(prev!=null) prev = prev - (row.wd||0) + (row.dep||0);
@@ -1040,16 +1048,37 @@ function verify(rows){
     if(prev!=null){
       checked++;
       const exp = prev - (row.wd||0) + (row.dep||0);
-      if(exp!==row.bal){ row.ok=false; fail++; row.warn = `ยอดคงเหลือไม่ต่อเนื่อง: คาดว่า ${fmt(exp)} แต่ไฟล์แสดง ${fmt(row.bal)} (ต่าง ${fmt(Math.abs(exp-row.bal))}) — แก้อัตโนมัติไม่ได้ อาจมีรายการหายจากต้นฉบับ ให้เทียบกับ PDF`; }
+      if(exp!==row.bal){
+        if(row.skipBal){ pass++; row.warn = "ยืนยันยอดตามไฟล์แล้ว — ข้ามการตรวจยอดคงเหลือแถวนี้"; }
+        else { row.ok=false; fail++; row.warn = `ยอดคงเหลือไม่ต่อเนื่อง: คาดว่า ${fmt(exp)} แต่ไฟล์แสดง ${fmt(row.bal)} (ต่าง ${fmt(Math.abs(exp-row.bal))}) — มักเกิดจากไฟล์ต้นฉบับตกรายการไป ${fmt(Math.abs(exp-row.bal))} บาท หรือยอดในไฟล์พิมพ์ไม่ตรง เลือกวิธีแก้จากปุ่มด้านล่าง`; }
+      }
       else pass++;
     }
     if(row.wd && row.dep){ row.ok=false; row.warn = (row.warn?row.warn+" · ":"")+"มีทั้งถอนและฝากในบรรทัดเดียว"; }
     if(!row.date){ row.ok=false; row.warn = (row.warn?row.warn+" · ":"")+"ไม่มีวันที่"; }
-    prev = row.bal;
+    prev = row.postAfter ? row.bal + row.postAfter : row.bal;
   }
   return {pass, fail, checked, fixed};
 }
 
+/* ยอดคงเหลือที่ควรเป็นก่อนถึงแถว idx (ไล่แบบเดียวกับ verify) */
+function prevBalAt(rows, idx){
+  let prev=null;
+  for(let k=0;k<idx;k++){
+    const row=rows[k];
+    if(row.opening){ prev=row.bal; continue; }
+    if(row.dayOk){ prev=row.groupEnd; continue; }
+    if(row.bal==null){ if(prev!=null) prev = prev-(row.wd||0)+(row.dep||0); continue; }
+    prev=row.bal;
+  }
+  return prev;
+}
+function gapAt(rows, idx){
+  const r=rows[idx]; if(!r || r.bal==null) return null;
+  const prev=prevBalAt(rows, idx); if(prev==null) return null;
+  const exp = prev-(r.wd||0)+(r.dep||0), diff = r.bal-exp;
+  return diff ? {prev, exp, diff} : null;
+}
 /* ---------------- Re-read & repair rows that fail the balance check ---------------- */
 function note(r, msg){ r.fix = r.fix ? r.fix+"; "+msg : "แก้ไขอัตโนมัติ: "+msg; }
 function digitsClose(a,b){ // looks like a mis-read number (same length, <=2 digits differ)
@@ -1121,6 +1150,45 @@ function repairRows(rows){
   return n;
 }
 
+/* ธนาคารบางแห่ง (เช่น กรุงไทย) พิมพ์ดอกเบี้ย/ภาษีตามวันที่ได้รับ แต่บันทึกยอดรวมเข้าบัญชีตอนสิ้นเดือน
+   รายการแบบนี้จะไม่อยู่ในลำดับยอดคงเหลือ และยอดคงเหลือที่พิมพ์ไว้ = ยอดสิ้นเดือน + ดอกเบี้ยสะสม */
+function fixDeferredPostings(rows){
+  const start = rows[0] && rows[0].opening ? 1 : 0;
+  let prev = start ? rows[0].bal : null, n = 0;
+  const segs = []; let seg = [], key = null;
+  for(let i=start;i<rows.length;i++){
+    const r = rows[i], k = r.date ? r.date.y*12 + r.date.m : key;
+    if(k!==key){ if(seg.length) segs.push(seg); seg=[]; key=k; }
+    seg.push(i);
+  }
+  if(seg.length) segs.push(seg);
+  for(const s of segs){
+    const cands=[]; let p=prev, ok=true;
+    for(const i of s){
+      const r=rows[i];
+      if(r.dayOk){ p=r.groupEnd; continue; }
+      if(r.bal==null){ if(p!=null) p=p-(r.wd||0)+(r.dep||0); continue; }
+      if(p==null){ p=r.bal; continue; }
+      if(p-(r.wd||0)+(r.dep||0)===r.bal){ p=r.bal; continue; }
+      if((r.wd||r.dep) && cands.length<8){ cands.push({i, amt:(r.dep||0)-(r.wd||0), bal:r.bal}); continue; }  // อาจเป็นรายการที่บันทึกตอนสิ้นเดือน
+      ok=false; break;
+    }
+    if(ok && cands.length && p!=null){
+      const monthEnd = p; let c = 0, good = true;
+      for(const cd of cands){ c += cd.amt; if(cd.bal !== monthEnd + c){ good=false; break; } }
+      if(good){
+        cands.forEach(cd=>{ const r=rows[cd.i]; r.deferred=true; delete r.skipBal;
+          note(r, "ธนาคารบันทึกยอดนี้ตอนสิ้นเดือน (พิมพ์ตามวันที่ได้รับ) — ยอดทั้งเดือนตรง"); n++; });
+        const lastReal = [...s].reverse().find(i=>rows[i].bal!=null && !rows[i].deferred);
+        if(lastReal!=null) rows[lastReal].postAfter = c;
+        p = monthEnd + c;
+      }
+    }
+    prev = p;
+  }
+  return n;
+}
+
 function finalizeRows(rows, opening, bankName){
   // newest-first statements -> chronological
   const tkey = r => dkey(r.date)*10000 + (r.time ? +r.time.replace(":","") : 0);
@@ -1149,7 +1217,7 @@ function parsePdfPages(pages, bankChoice){
   for(const strat of ["header","position"]){
     const rows = finalizeRows(buildRows(raws, opening, strat), opening, bankName);
     const before = verify(rows).fail;
-    repairRows(rows);
+    repairRows(rows); fixDeferredPostings(rows);
     const v = verify(rows); v.initialFail = before;
     const bad = rows.filter(r=>!r.ok).length;
     if(!best || bad<best.bad || (bad===best.bad && (v.fixed<best.v.fixed || (v.fixed===best.v.fixed && v.pass>best.v.pass)))) best={rows,v,strat,bad};
@@ -1222,7 +1290,7 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
     if(bal!=null) prev=bal; else if(prev!=null) prev=prev-wd+dep;
   }
   const out = finalizeRows(rows, opening, bankName);
-  const before = verify(out).fail; repairRows(out);
+  const before = verify(out).fail; repairRows(out); fixDeferredPostings(out);
   const st = verify(out); st.initialFail = before;
   return {rows:out, bankCode:code, bankName, strategy:"excel", stats:st};
 }
@@ -1306,6 +1374,12 @@ function renderStats(){
 }
 
 const COLS = [["A","วันที่","date"],["B","เวลา","time"],["C","ประเภท/ช่องทาง",""],["D","เลขที่อ้างอิง","ref"],["E","รายละเอียด","desc"],["F","ถอน","num"],["G","ฝาก","num"],["H","คงเหลือ","num"],["I","ธนาคาร","bankcol"],["J","สถานะตรวจสอบ",""],["K","คำเตือน","warn-text"]];
+function gapBtns(f,i){
+  const g = gapAt(f.rows, i); if(!g) return "";
+  const amt = fmt(Math.abs(g.diff)), kind = g.diff>0 ? "ฝาก" : "ถอน";
+  return `<div class="gapacts"><button class="btn sm" type="button" data-act="add" title="แทรกรายการ${kind} ${amt} บาท ก่อนแถวนี้ แล้วยอดจะต่อเนื่อง">+ เพิ่มรายการที่หาย ${amt}</button>` +
+    `<button class="btn sm ghost" type="button" data-act="skip" title="ยอมรับยอดคงเหลือตามที่พิมพ์ในไฟล์ แล้วเริ่มนับต่อจากยอดนี้">ยืนยันยอดตามไฟล์</button></div>`;
+}
 function renderTable(){
   const list = allRows().filter(x=>!x.r.ok);
   $("review").hidden = false;
@@ -1326,8 +1400,8 @@ function renderTable(){
       ${n(r.wd,"wd")}${n(r.dep,"dep")}${n(r.bal,"bal")}
       <td class="bankcol">${esc(r.bank)}</td>
       <td>${status}</td>
-      <td class="warn-text">${r.fix?`<span class="fixnote">${esc(r.fix)}</span>`:""}${r.fix&&r.warn?"<br>":""}${esc(r.warn)}</td>
-      <td><button class="x" data-del="1" title="ลบแถวนี้" aria-label="ลบแถวนี้" type="button">×</button></td></tr>`;
+      <td class="warn-text">${r.fix?`<span class="fixnote">${esc(r.fix)}</span>`:""}${r.fix&&r.warn?"<br>":""}${esc(r.warn)}${gapBtns(f,i)}</td>
+      <td class="rowacts"><button class="x" data-del="1" title="ลบแถวนี้" aria-label="ลบแถวนี้" type="button">×</button></td></tr>`;
   }).join("");
   $("tablebox").innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>${list.length>cap?`<div class="empty small">แสดง ${cap.toLocaleString()} จาก ${list.length.toLocaleString()} แถว — ไฟล์ Excel จะมีครบทุกแถว</div>`:""}`;
 }
@@ -1413,9 +1487,35 @@ $("tablebox").addEventListener("dblclick", e=>{
   td.addEventListener("keydown", ev=>{ if(ev.key==="Enter"){ ev.preventDefault(); td.blur(); } if(ev.key==="Escape"){ finish(false); } });
 });
 $("tablebox").addEventListener("click", e=>{
+  const act = e.target.closest("[data-act]");
+  if(act){
+    const tr = act.closest("tr"); const f = files.find(x=>x.id==tr.dataset.f); if(!f) return;
+    const i = +tr.dataset.i, g = gapAt(f.rows, i); if(!g) return;
+    if(act.dataset.act==="add"){
+      const amt = Math.abs(g.diff), r = f.rows[i];
+      f.rows.splice(i, 0, { date: r.date?{...r.date}:null, time:"", type:"", ref:"",
+        desc:"รายการที่หายจากไฟล์ต้นฉบับ (เพิ่มเอง) — ตรวจกับ PDF แล้วแก้รายละเอียดได้",
+        wd: g.diff<0?amt:0, dep: g.diff>0?amt:0, bal: g.prev+g.diff, added:true });
+      f.stats = verify(f.rows); renderAll();
+      toast(`เพิ่มรายการ${g.diff>0?"ฝาก":"ถอน"} ${fmt(amt)} บาท แล้ว — แก้รายละเอียดได้ด้วยการดับเบิลคลิก`);
+    }else{
+      f.rows[i].skipBal = true; f.stats = verify(f.rows); renderAll();
+      toast("ยืนยันยอดตามไฟล์แล้ว — เริ่มตรวจต่อจากยอดนี้");
+    }
+    return;
+  }
   const b = e.target.closest("[data-del]"); if(!b) return;
   const tr = b.closest("tr"); const f = files.find(x=>x.id==tr.dataset.f); if(!f) return;
   f.rows.splice(+tr.dataset.i,1); f.stats=verify(f.rows); renderAll();
+});
+/* ยืนยันยอดตามไฟล์ทั้งหมดในครั้งเดียว (เช่น Statement ที่กรองเฉพาะบางรายการ ยอดจึงไม่ต่อเนื่องทั้งไฟล์) */
+$("skipAllBtn") && $("skipAllBtn").addEventListener("click", ()=>{
+  let n=0;
+  for(const f of files){ let touched=false;
+    for(const r of f.rows) if(!r.ok && /ยอดคงเหลือไม่ต่อเนื่อง/.test(r.warn||"")){ r.skipBal=true; touched=true; n++; }
+    if(touched) f.stats = verify(f.rows);
+  }
+  renderAll(); toast(n?`ยืนยันยอดตามไฟล์ ${n} รายการแล้ว`:"ไม่มีรายการที่ต้องยืนยัน");
 });
 
 /* ---------------- File intake ---------------- */
