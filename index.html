@@ -864,7 +864,7 @@ function extractRaw(pages){
   }
   const isBoiler = l => { if(pages.length<2) return false; const s=seen[boilerKey(l)]; return s && s.size>=2 && s.size>=pages.length*0.6; };
 
-  const raws=[]; let opening=null; let header=null; let lastYear=null, lastMonth=null, topText=null, curDate=null;
+  const raws=[]; let opening=null, openingDate=null; let header=null; let lastYear=null, lastMonth=null, topText=null, curDate=null;
   pages.forEach((p,pi)=>{
     let last=null, hdrLine=null;
     for(const L of p.lines){
@@ -898,7 +898,12 @@ function extractRaw(pages){
       // opening balance
       if(OPEN_RE.test(L.text)){
         const amts = toks.map(t=>parseAmount(t.t)).filter(Boolean);
-        if(amts.length && opening==null && !raws.length) opening = amts[amts.length-1].v;
+        if(amts.length && opening==null && !raws.length){
+          opening = amts[amts.length-1].v;
+          for(let i=0;i<Math.min(2,toks.length) && !openingDate;i++){                 // วันที่ที่พิมพ์ในบรรทัดยอดยกมา (ถ้ามี)
+            try{ const d=parseDateAt(toks[i].t, {}); if(d && !d.noYear && d.y) openingDate={y:d.y, m:d.m, d:d.d}; }catch(e){}
+          }
+        }
         last=null; continue;
       }
       // find date in first two tokens (dates can be split over tokens like "05 ก.พ. 69")
@@ -974,7 +979,7 @@ function extractRaw(pages){
       if(date || amounts.length) last=null;
     }
   });
-  return {raws, opening, allText, topText};
+  return {raws, opening, openingDate, allText, topText};
 }
 
 /* assign columns for one raw row */
@@ -1030,12 +1035,22 @@ function buildRows(raws, opening, strategy){
       if(role==="branch"){ branch = branch ? branch+" "+w.t : w.t; continue; }
       if(hasDescCol && role!=="desc"){
         // ข้อความที่อยู่ใต้คอลัมน์ซึ่งจับหัวตารางไม่ได้ (เช่น "รายการ" ของกสิกร) เก็บไว้ ไม่ทิ้ง
-        if(!/^[\d.,:\/\-]+$/.test(w.t) && !/^(บาท|THB)$/i.test(w.t)) extra.push(w.t);
+        if(!/^[\d.,:\/\-]+$/.test(w.t) && !/^(บาท|THB)$/i.test(w.t)) extra.push(w);
         continue;
       }
       desc.push(w.t);
     }
-    if(!type && extra.length) type = extra.join(" ").replace(/\s+/g," ").trim();   // ไม่มีคอลัมน์ประเภท → ใช้ข้อความที่เก็บไว้แทน
+    if(extra.length){
+      // คอลัมน์ที่จับหัวตารางไม่ได้: ซ้ายของยอดเงิน = รายการ · ขวาของยอดคงเหลือ = ช่องทาง (แบบ Statement กสิกร)
+      const amtH = r.header ? r.header.filter(h=>["wd","dep","amt","bal"].includes(h.role)) : [];
+      const join = a => a.map(w=>w.t).join(" ").replace(/\s+/g," ").trim();
+      if(amtH.length){
+        const L = Math.min(...amtH.map(h=>h.x0)), R = Math.max(...amtH.map(h=>h.cx));
+        const left = extra.filter(w=>w.x0 < L), right = extra.filter(w=>w.x0 > R);
+        if(!type && left.length) type = join(left);
+        if(!channel && right.length) channel = join(right);
+      } else if(!type) type = join(extra);
+    }
     let description = [desc.join(" "), branch].filter(Boolean).join(" ").replace(/\s+/g," ").trim();
     if(!ref) ref = refFromDesc(description);
     let C = typeWithChannel(type, channel);
@@ -1202,7 +1217,7 @@ function fixDeferredPostings(rows){
   return n;
 }
 
-function finalizeRows(rows, opening, bankName){
+function finalizeRows(rows, opening, bankName, openingDate){
   // newest-first statements -> chronological
   const tkey = r => dkey(r.date)*10000 + (r.time ? +r.time.replace(":","") : 0);
   if(rows.length>1 && tkey(rows[0]) > tkey(rows[rows.length-1])) rows.reverse();
@@ -1212,14 +1227,14 @@ function finalizeRows(rows, opening, bankName){
     if(f && f===rows[0]){ opening = f.bal + (f.wd||0) - (f.dep||0); derived=true; }
   }
   const out=[];
-  if(opening!=null) out.push({opening:true, date:null, time:"", type:"", ref:"", desc:"", wd:0, dep:0, bal:opening, derived});
+  if(opening!=null) out.push({opening:true, date:openingDate||null, time:"", type:"", ref:"", desc:"", wd:0, dep:0, bal:opening, derived});
   out.push(...rows);
   out.forEach(r=>r.bank=bankName);
   return out;
 }
 
 function parsePdfPages(pages, bankChoice){
-  const {raws, opening, allText, topText} = extractRaw(pages);
+  const {raws, opening, openingDate, allText, topText} = extractRaw(pages);
   const code = bankChoice!=="AUTO" ? bankChoice : (detectBank(allText, topText) || null);
   const bankName = code ? BANK_BY[code].name : "ไม่ทราบธนาคาร";
   if(!raws.length){
@@ -1228,7 +1243,7 @@ function parsePdfPages(pages, bankChoice){
   }
   let best=null;
   for(const strat of ["header","position"]){
-    const rows = finalizeRows(buildRows(raws, opening, strat), opening, bankName);
+    const rows = finalizeRows(buildRows(raws, opening, strat), opening, bankName, openingDate);
     const before = verify(rows).fail;
     repairRows(rows); fixDeferredPostings(rows);
     const v = verify(rows); v.initialFail = before;
@@ -1431,15 +1446,18 @@ function cutTable(){
   // same rows and columns as Statement_Export.xlsx (sheet Transactions), dates carried like the export
   const LAY = exportLayout(allRows().map(x=>x.r));
   const rows=[]; let lastDate=null;
+  if(LAY.openingRow){
+    const o = LAY.openingRow, bankName = (allRows().find(x=>x.r.bank)||{r:{}}).r.bank || null;
+    rows.push([ o.date ? new Date(Date.UTC(o.date.y, o.date.m-1, o.date.d)) : null, null, "ยอดยกมา", null, "ยอดยกมา", 0, 0, o.bal/100, bankName, "พร้อมใช้งาน", null ]);
+  }
   for(const {r} of allRows()){
     if(r.opening) continue;
     const d = (r.date && r.date.y) ? r.date : lastDate; if(r.date && r.date.y) lastDate=r.date;
-    rows.push([ d ? new Date(Date.UTC(d.y, d.m-1, d.d)) : null, r.time||null, ...LAY.cells(r), r.ref||null, r.desc||null,
+    rows.push([ d ? new Date(Date.UTC(d.y, d.m-1, d.d)) : null, r.time||null, ...LAY.cells(r), r.ref||null, LAY.desc(r),
       (r.wd||0)/100, (r.dep||0)/100, r.bal==null?null:r.bal/100, r.bank||null, r.ok?"พร้อมใช้งาน":"ต้องตรวจสอบ", r.ok?null:(r.warn||null) ]);
   }
-  const k = LAY.split ? 1 : 0;
   return { sheetName:"Transactions", headers:LAY.headers.slice(),
-    cols:{dt:0, time:1, type:2, channel: LAY.split ? 3 : -1, ref:3+k, detail:4+k, w:5+k, d:6+k, bal:7+k, bank:8+k}, rows };
+    cols:{dt:0, time:1, type:2, channel:-1, ref:3, detail:4, w:5, d:6, bal:7, bank:8}, rows };
 }
 let cutTimer=null, reviewAuto=false;
 /* stage 2 runs automatically; the popup appears only when rows still fail the balance check */
@@ -1627,20 +1645,35 @@ $("repairBtn").addEventListener("click", ()=>{
 
 /* ---------------- Export (matches Statement_Export.xlsx layout) ---------------- */
 /* กสิกรและธนาคารที่มีคอลัมน์ "ช่องทาง" แยก → ส่งออกเป็น 2 คอลัมน์: รายการ และ ช่องทาง */
+/* รูปแบบไฟล์ Excel (11 คอลัมน์ ทุกธนาคาร ตามไฟล์ตัวอย่าง Statement_Export.xlsx)
+   ประเภท/ช่องทาง = "รายการ" (เช่น ฝากเงินสด) · รายละเอียด = ช่องทาง + รายละเอียด · แถวแรกเป็น "ยอดยกมา" เมื่อ Statement พิมพ์ไว้ */
+const KB_CH_ANY = /\b(K PLUS|K BIZ|K-Cash Connect Plus|MAKE by KBank|Internet\/Mobile|EDC\/K SHOP|CDM|ATM|Online Direct Debit)\b|ต่างธนาคาร|โอนเข้า\/หักบัญชีอัตโนมัติ|ธุรกรรมต่างประเทศ|สาขา/i;
 function exportLayout(rows){
-  // แยก "รายการ" กับ "ช่องทาง" เฉพาะ Statement กสิกร ธนาคารอื่นคงรูปแบบ 11 คอลัมน์เดิม
-  const kb = rows.some(r=>/กสิกร|kbank|kasikorn/i.test(r.bank||""));
-  const split = kb && rows.some(r=>!r.opening && (r.channel||"").trim());
-  const headers = split
-    ? ["วันที่","เวลา","รายการ","ช่องทาง","เลขที่อ้างอิง","รายละเอียด","ถอน","ฝาก","คงเหลือ","ธนาคาร","สถานะตรวจสอบ","คำเตือน"]
-    : ["วันที่","เวลา","ประเภท/ช่องทาง","เลขที่อ้างอิง","รายละเอียด","ถอน","ฝาก","คงเหลือ","ธนาคาร","สถานะตรวจสอบ","คำเตือน"];
-  const widths = split
-    ? [12.83,8.83,20.83,20.83,15.83,40.83,15.83,15.83,15.83,15.83,18.83,50.83]
-    : [12.83,8.83,20.83,15.83,40.83,15.83,15.83,15.83,15.83,18.83,50.83];
-  const cells = r => split
-    ? [r.item || null, r.channel || null]
-    : [r.type || null];
-  return { split, headers, widths, cells };
+  const kbHits = rows.filter(r=>/\b(K PLUS|K BIZ|MAKE by KBank|K-Cash)\b/i.test(`${r.type||""} ${r.channel||""} ${r.desc||""}`)).length;
+  const kb = rows.some(r=>/กสิกร|kbank|kasikorn/i.test(r.bank||""))
+    || (rows.every(r=>!r.bank || /ไม่ทราบ/.test(r.bank)) && kbHits >= Math.max(3, rows.length*0.2));   // Auto ไม่เจอชื่อธนาคาร แต่รูปแบบเป็นกสิกร
+  const headers = ["วันที่","เวลา","ประเภท/ช่องทาง","เลขที่อ้างอิง","รายละเอียด","ถอน","ฝาก","คงเหลือ","ธนาคาร","สถานะตรวจสอบ","คำเตือน"];
+  const widths = [12.83,8.83,20.83,15.83,40.83,15.83,15.83,15.83,15.83,18.83,50.83];
+  // ใช้กับทุกธนาคาร: ประเภท/ช่องทาง = รายการ · รายละเอียด = ช่องทาง + รายละเอียด · แถวยอดยกมาเมื่อ Statement พิมพ์ไว้
+  const kbParts = r => {                                               // กสิกร: แยก "ชำระเงิน EDC/K SHOP" → รายการ + ช่องทาง
+    let item = (r.item || "").trim(), ch = (r.channel || "").trim();
+    if(!ch){
+      const src = item || (r.type || "").trim();
+      const pm = src.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+      if(pm){ item = pm[1].trim(); ch = pm[2].trim(); }
+      else { const m = src.match(KB_CH_ANY); if(m && m.index > 0){ item = src.slice(0, m.index).trim(); ch = src.slice(m.index).trim(); } else item = src; }
+    }
+    return { item, ch };
+  };
+  const type = r => kb ? (kbParts(r).item || r.type || null) : ((r.item || "").trim() || r.type || null);
+  const desc = r => {
+    const ch = kb ? kbParts(r).ch : (r.item ? (r.channel||"").trim() : "");
+    return [ch, (r.desc||"").trim()].filter(Boolean).join(" ") || null;
+  };
+  const firstDate = (rows.find(r=>!r.opening && r.date && r.date.y) || {}).date || null;
+  const opening = rows.find(r=>r.opening && !r.derived && r.bal!=null) || null;
+  const openingRow = opening ? { date: opening.date || firstDate, bal: opening.bal } : null;
+  return { kb, headers, widths, type, desc, openingRow, split:false, cells: r => [type(r)] };
 }
 async function buildWorkbook(){
   const wb = new ExcelJS.Workbook();
@@ -1651,6 +1684,12 @@ async function buildWorkbook(){
   const font = {name:"Calibri", size:12};
   const headerRow = ws.addRow(LAY.headers);
   headerRow.eachCell(c=>c.font=font);
+  if(LAY.openingRow){
+    const o = LAY.openingRow, bankName = (allRows().find(x=>x.r.bank)||{r:{}}).r.bank || null;
+    const orow = ws.addRow([ o.date ? new Date(Date.UTC(o.date.y, o.date.m-1, o.date.d)) : null, null, "ยอดยกมา", null, "ยอดยกมา", 0, 0, o.bal/100, bankName, "พร้อมใช้งาน", null ]);
+    for(let c=1;c<=LAY.headers.length;c++) orow.getCell(c).font = font;
+    if(o.date) orow.getCell(1).numFmt = "DD/MM/YYYY";
+  }
   let lastDate=null;
   for(let {r} of allRows()){
     if(r.opening) continue;                                   // the export starts directly with transactions
@@ -1660,7 +1699,7 @@ async function buildWorkbook(){
       r.time || null,
       ...LAY.cells(r),
       r.ref || null,
-      r.desc || null,
+      LAY.desc(r),
       (r.wd||0)/100,
       (r.dep||0)/100,
       r.bal==null ? null : r.bal/100,
@@ -1849,15 +1888,18 @@ function splitTypeParts(v) {
   const m = s.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
   return m ? { item: m[1].trim(), ch: m[2].trim() } : { item: s, ch: '' };
 }
-const BANK_SUFFIX = /^(KTB|GSB|SCB|BAY|BBL|TTB|KBANK|KKP|UOB|CIMB|TISCO|LHB|BAAC|TMN|ICBC)$/i;
+const KB_CHANNEL_RE = /^(K PLUS|K BIZ|K-Cash Connect Plus|MAKE by KBank|Internet\/Mobile(\s+(KTB|GSB|SCB|BAY|BBL|TTB|UOBT|CIMBT|ICBCT|KK|BAAC|LHB|TISCO))?|EDC\/K SHOP(\/MYQR)?|CDM|ATM|Online Direct Debit|ต่างธนาคาร|โอนเข้า\/หักบัญชีอัตโนมัติ|ธุรกรรมต่างประเทศ|สาขา\S*)/i;
+const BANK_SUFFIX = /^(KTB|GSB|SCB|BAY|BBL|TTB|KBANK|KKP|KK|UOB|UOBT|CIMB|CIMBT|TISCO|LHB|BAAC|TMN|ICBC|ICBCT|GHB|ต่าง)$/i;
+const KEEP_CHANNEL = /^(MAKE by KBank|K-Cash Connect Plus|Online Direct Debit|EDC\/K SHOP\/MYQR|โอนเข้า\/หักบัญชีอัตโนมัติ)/i;
 function channelLabel(ch) {                                          // "CDM RCM ยิ่งดี สาขา…" → CDM · "Internet/Mobile KTB" → Internet/Mobile
+  const keep = String(ch == null ? '' : ch).trim().match(KEEP_CHANNEL); if (keep) return keep[0];
   let tok = String(ch == null ? '' : ch).replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
   tok = tok.filter(t => !/^สาขา/.test(t) && !/^\d+$/.test(t) && !BANK_SUFFIX.test(t));
   if (!tok.length) return '';
   const out = [tok[0]];
   for (let i = 1; i < tok.length; i++) {
     const prev = out[out.length - 1];
-    if (prev.includes('/') || prev.length < 3) out.push(tok[i]); else break;
+    if ((prev.includes('/') && tok[i].includes('/')) || prev.length < 3) out.push(tok[i]); else break;
   }
   const w = out.join(' ').trim();
   return w.length >= 2 && w.length <= 24 ? w : '';
@@ -1870,7 +1912,8 @@ function itemTypes(table) {                                          // ตั�
     const tRaw = table.cols.type >= 0 ? String(row[table.cols.type] == null ? '' : row[table.cols.type]) : '';
     const dRaw = table.cols.detail >= 0 ? String(row[table.cols.detail] == null ? '' : row[table.cols.detail]) : '';
     const chCol = table.cols.channel != null && table.cols.channel >= 0 ? String(row[table.cols.channel] == null ? '' : row[table.cols.channel]) : '';
-    const { item, ch } = chCol ? { item: tRaw.trim(), ch: chCol } : splitTypeParts(tRaw);
+    let { item, ch } = chCol ? { item: tRaw.trim(), ch: chCol } : splitTypeParts(tRaw);
+    if (!ch) { const m = dRaw.match(KB_CHANNEL_RE); if (m) ch = m[0]; }          // ไฟล์รูปแบบกสิกร: ช่องทางอยู่ต้นช่องรายละเอียด
     const c = channelLabel(ch);
     add(chans, c);
     // ชื่อรายการ: หาได้จากช่องประเภท/ช่องทาง หรือช่องรายละเอียด แล้วแต่ว่าไฟล์เก็บไว้ตรงไหน
