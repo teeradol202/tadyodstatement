@@ -1628,7 +1628,9 @@ $("repairBtn").addEventListener("click", ()=>{
 /* ---------------- Export (matches Statement_Export.xlsx layout) ---------------- */
 /* กสิกรและธนาคารที่มีคอลัมน์ "ช่องทาง" แยก → ส่งออกเป็น 2 คอลัมน์: รายการ และ ช่องทาง */
 function exportLayout(rows){
-  const split = rows.some(r=>!r.opening && (r.channel||"").trim());
+  // แยก "รายการ" กับ "ช่องทาง" เฉพาะ Statement กสิกร ธนาคารอื่นคงรูปแบบ 11 คอลัมน์เดิม
+  const kb = rows.some(r=>/กสิกร|kbank|kasikorn/i.test(r.bank||""));
+  const split = kb && rows.some(r=>!r.opening && (r.channel||"").trim());
   const headers = split
     ? ["วันที่","เวลา","รายการ","ช่องทาง","เลขที่อ้างอิง","รายละเอียด","ถอน","ฝาก","คงเหลือ","ธนาคาร","สถานะตรวจสอบ","คำเตือน"]
     : ["วันที่","เวลา","ประเภท/ช่องทาง","เลขที่อ้างอิง","รายละเอียด","ถอน","ฝาก","คงเหลือ","ธนาคาร","สถานะตรวจสอบ","คำเตือน"];
@@ -1636,7 +1638,7 @@ function exportLayout(rows){
     ? [12.83,8.83,20.83,20.83,15.83,40.83,15.83,15.83,15.83,15.83,18.83,50.83]
     : [12.83,8.83,20.83,15.83,40.83,15.83,15.83,15.83,15.83,18.83,50.83];
   const cells = r => split
-    ? [r.item || r.type || null, r.channel || null]
+    ? [r.item || null, r.channel || null]
     : [r.type || null];
   return { split, headers, widths, cells };
 }
