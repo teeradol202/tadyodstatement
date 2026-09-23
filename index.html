@@ -634,6 +634,8 @@ function parseAmount(raw){
   if(m[1]||m[4]) sign = (m[1]||m[4]);
   return {v: parseInt(m[2].replace(/,/g,""),10)*100 + parseInt(m[3],10), sign};
 }
+/* ยอดคงเหลือติดลบได้ (บัญชีเงินเบิกเกินบัญชี OD) — ใช้ค่ามีเครื่องหมาย */
+const signedV = a => a ? (a.sign==="-" ? -a.v : a.v) : null;
 function parseLooseAmount(raw){ // for Excel cells / edited cells: accepts integers too
   if(raw==null || raw==="") return null;
   if(typeof raw==="number") return parseAmount(raw);
@@ -899,7 +901,7 @@ function extractRaw(pages){
       if(OPEN_RE.test(L.text)){
         const amts = toks.map(t=>parseAmount(t.t)).filter(Boolean);
         if(amts.length && opening==null && !raws.length){
-          opening = amts[amts.length-1].v;
+          opening = signedV(amts[amts.length-1]);
           for(let i=0;i<Math.min(2,toks.length) && !openingDate;i++){                 // วันที่ที่พิมพ์ในบรรทัดยอดยกมา (ถ้ามี)
             try{ const d=parseDateAt(toks[i].t, {}); if(d && !d.noYear && d.y) openingDate={y:d.y, m:d.m, d:d.d}; }catch(e){}
           }
@@ -1005,13 +1007,13 @@ function buildRows(raws, opening, strategy){
     if(useHeader){
       const picked={};
       for(const a of A){ const role = nearestRole(a.cx, r.header, ["wd","dep","bal","amt"]); if(role && picked[role]==null) picked[role]=a; }
-      if(picked.bal) bal = picked.bal.v;
+      if(picked.bal) bal = signedV(picked.bal);
       if(picked.wd || picked.dep){ explicit=true; wd = picked.wd?picked.wd.v:0; dep = picked.dep?picked.dep.v:0; }
       if(picked.amt){ amt = picked.amt.v; amtSign = picked.amt.sign; explicit=false; }
       if(!picked.bal && !picked.wd && !picked.dep && !picked.amt && A.length){ amt=A[0].v; amtSign=A[0].sign; }
     } else {
-      if(A.length>=3){ const [a,b,c]=A.slice(-3); if(a.v===0||b.v===0){ wd=a.v; dep=b.v; bal=c.v; explicit=true; } else { amt=b.v; amtSign=b.sign; bal=c.v; } }
-      else if(A.length===2){ amt=A[0].v; amtSign=A[0].sign; bal=A[1].v; }
+      if(A.length>=3){ const [a,b,c]=A.slice(-3); if(a.v===0||b.v===0){ wd=a.v; dep=b.v; bal=signedV(c); explicit=true; } else { amt=b.v; amtSign=b.sign; bal=signedV(c); } }
+      else if(A.length===2){ amt=A[0].v; amtSign=A[0].sign; bal=signedV(A[1]); }
       else { amt=A[0].v; amtSign=A[0].sign; }
     }
     const text = r.words.map(w=>w.t).join(" ");
@@ -1137,7 +1139,7 @@ function repairRows(rows){
     // 2) re-read the numbers on the original line: try every amount/balance pairing
     if(!done && r.raw && r.raw.length>1){
       outer: for(let bi=r.raw.length-1;bi>=0;bi--){
-        const b=r.raw[bi].v;
+        const b=signedV(r.raw[bi]);
         for(let ai=r.raw.length-1;ai>=0;ai--){
           if(ai===bi) continue; const a=r.raw[ai].v; if(!a) continue;
           if(prev-a===b){ r.wd=a; r.dep=0; r.bal=b; done=true; break outer; }
@@ -1274,10 +1276,16 @@ function excelDate(v, ctx){
   const rest=s.slice(d.len).trim().match(/^([01]?\d|2[0-3]):([0-5]\d)/);
   return {y:d.y,m:d.m,d:d.d,time: rest? pad(+rest[1])+":"+rest[2] : ""};
 }
+function bankFromName(name){
+  const n = String(name||"").toUpperCase();
+  const map = [["KBANK","KBANK"],["KASIKORN","KBANK"],["SCB","SCB"],["BBL","BBL"],["BANGKOKBANK","BBL"],["KTB","KTB"],["KRUNGTHAI","KTB"],["TTB","TTB"],["BAY","BAY"],["KRUNGSRI","BAY"],["GSB","GSB"],["BAAC","BAAC"],["UOB","UOB"],["CIMB","CIMB"],["KKP","KKP"],["TISCO","TISCO"],["LHB","LHBANK"]];
+  for(const [k,c] of map){ if(new RegExp("(^|[^A-Z])"+k+"([^A-Z]|$)").test(n) && BANK_BY[c]) return c; }
+  return null;
+}
 function parseExcelGrid(grid, mapping, bankChoice, fileName){
   const {headerRow, map} = mapping;
   const text = grid.slice(0,20).map(r=>(r||[]).join(" ")).join("\n") + " " + fileName;
-  const code = bankChoice!=="AUTO" ? bankChoice : detectBank(text);
+  const code = bankChoice!=="AUTO" ? bankChoice : (detectBank(text) || bankFromName(fileName));
   const bankName = code ? BANK_BY[code].name : "ไม่ทราบธนาคาร";
   if(headerRow<0 || map.date==null) return {rows:[], bankCode:code, bankName, error:"หาแถวหัวตารางไม่พบ — กำหนดคอลัมน์เองด้านล่าง"};
   let md=false, dm=false;
@@ -1288,15 +1296,15 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
   for(let r=headerRow+1;r<grid.length;r++){
     const row = grid[r]; if(!row) continue;
     const joined = row.filter(v=>v!=null).join(" ");
-    if(OPEN_RE.test(joined)){ const b=parseLooseAmount(g(row,"bal")); if(b && opening==null && !raws.length) opening=b.v; continue; }
+    if(OPEN_RE.test(joined)){ const b=parseLooseAmount(g(row,"bal")); if(b && opening==null && !raws.length) opening=signedV(b); continue; }
     const d = excelDate(g(row,"date"), ctx);
-    if(!d){ if(!raws.length && opening==null){ const b=parseLooseAmount(g(row,"bal")); const w=parseLooseAmount(g(row,"wd")), dp=parseLooseAmount(g(row,"dep")); if(b && !(w&&w.v) && !(dp&&dp.v)) opening=b.v; } continue; }
+    if(!d){ if(!raws.length && opening==null){ const b=parseLooseAmount(g(row,"bal")); const w=parseLooseAmount(g(row,"wd")), dp=parseLooseAmount(g(row,"dep")); if(b && !(w&&w.v) && !(dp&&dp.v)) opening=signedV(b); } continue; }
     if(SKIP_RE.test(joined)) continue;
     let time = "";
     const tv = g(row,"time");
     if(tv instanceof Date) time = pad(tv.getHours())+":"+pad(tv.getMinutes());
     else if(typeof tv==="number" && tv<1){ const mins=Math.round(tv*1440); time=pad(Math.floor(mins/60))+":"+pad(mins%60); }
-    else if(tv!=null){ const m=String(tv).trim().match(/^([01]?\d|2[0-3])[:.]([0-5]\d)/); if(m) time=pad(+m[1])+":"+m[2]; }
+    else if(tv!=null){ const sv=String(tv).trim(); const m=sv.match(/^([01]?\d|2[0-3])[:.]([0-5]\d)/) || sv.match(/^([01]\d|2[0-3])([0-5]\d)(?:[0-5]\d)?$/); if(m) time=pad(+m[1])+":"+m[2]; }
     if(!time) time = d.time;
     const wdA=parseLooseAmount(g(row,"wd")), depA=parseLooseAmount(g(row,"dep")), amtA=parseLooseAmount(g(row,"amt")), balA=parseLooseAmount(g(row,"bal"));
     raws.push({date:{y:d.y,m:d.m,d:d.d}, time, type:g(row,"type"), ref:g(row,"ref"), desc:g(row,"desc"), wdA, depA, amtA, balA});
@@ -1304,7 +1312,7 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
   if(!raws.length) return {rows:[], bankCode:code, bankName, error:"ไม่พบรายการใต้หัวตาราง — ตรวจการจับคู่คอลัมน์"};
   let prev=opening; const rows=[];
   for(const r of raws){
-    let wd=r.wdA?r.wdA.v:0, dep=r.depA?r.depA.v:0; const bal=r.balA?r.balA.v:null;
+    let wd=r.wdA?r.wdA.v:0, dep=r.depA?r.depA.v:0; const bal=r.balA?signedV(r.balA):null;
     if(r.amtA && !wd && !dep){
       const a=r.amtA.v;
       if(prev!=null&&bal!=null&&prev+a===bal) dep=a; else if(prev!=null&&bal!=null&&prev-a===bal) wd=a;
