@@ -6,7 +6,7 @@
 <meta name="description" content="แปลง Statement ธนาคาร (PDF/Excel) เป็น Excel ตรวจยอดคงเหลืออัตโนมัติ แล้วตัดยอดฝากและสรุปรายเดือน ประมวลผลในเบราว์เซอร์เท่านั้น">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#090C10">
-<title>ตรวจสอบและปรับปรุงยอดบัญชี</title>
+<title>แปลงStatementและตัดยอด</title>
 <script type="application/json" data-od-external-dependencies>["https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"]</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -290,6 +290,35 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 #cut .item.wd .amt { color: var(--muted); font-weight: 500; }
 #cut .item .amt small { display: block; font-weight: 500; font-size: .8rem; color: var(--muted); }
 #cut .empty { padding: 28px 8px; text-align: center; color: var(--muted); }
+#cut .cx-sec { margin-top: 14px; border: 1px solid var(--c-rule); border-radius: 12px; background: var(--c-paper); overflow: hidden; }
+#cut .cx-review { border-color: var(--warn); }
+#cut .cx-sec-h, #cut .cx-ok > summary { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: .98rem; flex-wrap: wrap; }
+#cut .cx-review .cx-sec-h { background: var(--warn-soft); }
+#cut .cx-ok > summary { cursor: pointer; background: var(--good-soft); list-style: none; }
+#cut .cx-ok > summary::-webkit-details-marker { display: none; }
+#cut .cx-ic { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 700; font-size: .8rem; background: var(--warn); color: var(--bg); flex: none; }
+#cut .cx-ic.ok { background: var(--good); } #cut .cx-ic.kept { background: var(--muted); }
+#cut .cx-gs { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+#cut .cx-hint { margin-left: auto; color: var(--accent); font-size: .85rem; }
+#cut .cx-ok[open] .cx-hint { display: none; }
+#cut .cx-groups { padding: 4px 10px 10px; }
+#cut .cx-grp { border-top: 1px solid var(--c-rule); }
+#cut .cx-grp:first-child { border-top: 0; }
+#cut .cx-grp > summary { cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 9px 4px; flex-wrap: wrap; }
+#cut .cx-grp > summary .sw { margin-right: 0; }
+#cut .cx-line { display: grid; grid-template-columns: 70px minmax(0,1fr) auto auto; gap: 4px 14px; align-items: center; padding: 8px 6px 8px 22px; border-top: 1px dashed var(--c-rule); }
+#cut .cx-when b { display: block; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .9rem; }
+#cut .cx-when small { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+#cut .cx-what { min-width: 0; display: grid; gap: 2px; }
+#cut .cx-t { font-weight: 500; overflow-wrap: anywhere; }
+#cut .cx-sub { color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cut .cx-flags { display: flex; flex-wrap: wrap; gap: 4px; }
+#cut .cx-flags:empty { display: none; }
+#cut .cx-flag { font-size: .78rem; padding: 1px 8px; border-radius: 999px; background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+#cut .cx-amt { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+#cut .cx-ex, #cut .cx-back { padding: 4px 10px; font-size: .82rem; }
+#cut .cx-ex:hover { border-color: var(--bad); color: var(--bad); }
+@media (max-width: 560px) { #cut .cx-line { grid-template-columns: 56px minmax(0,1fr) auto; padding-left: 8px; } #cut .cx-line .cx-ex, #cut .cx-line .cx-back { grid-column: 2 / -1; justify-self: start; } }
 #cut .togg { display: inline-flex; gap: 10px; align-items: center; margin: 2px 2px 6px; font-size: .92rem; color: var(--muted); cursor: pointer; }
 #cut .togg input { width: 17px; height: 17px; accent-color: var(--accent); }
 @media (max-width: 520px) { #cut .item { grid-template-columns: 1fr auto; } #cut .item .tm { grid-column: 1 / -1; padding: 0; } #cut .dayhead { flex-direction: column; gap: 0; } }
@@ -666,6 +695,7 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
     <p class="exnote v-flow" id="mfNote" style="margin-bottom:10px">ซ้าย = ใครโอนเข้าบัญชีเรา · ขวา = เราโอนให้ใคร · แสดงเฉพาะบัญชีที่มีนัยยะ คือยอดตั้งแต่ 3% ของยอดฝั่งนั้น (สูงสุดฝั่งละ 10 บัญชี) · ความหนาแถบ = ยอดเงิน</p>
     <p class="exnote v-rt" id="ranknote" style="margin-bottom:10px" hidden>ดูเฉพาะบัญชีที่มีทั้งโอนเข้าและโอนออก ยอดที่โอนกลับคืนให้บัญชีเดิม (หักล้างกัน) ไม่ใช่รายได้จริง ส่วนที่คงไว้ในบัญชีคือยอดที่มีนัยยะ · ชี้เพื่อดูรายละเอียด คลิกเพื่อดูรายการ</p>
     <div class="flow-ctl">
+      <label class="flow-f" id="flowAcctWrap" hidden>บัญชี <select id="flowAcct"><option value="">ทุกบัญชี</option></select></label>
       <label class="flow-f">เดือน <select id="flowMonth"><option value="all">ทุกเดือน</option></select></label>
       <label class="flow-f v-rt" hidden>มีนัยยะเมื่อคงไว้ ≥ <input id="rtPct" type="number" min="0" max="100" step="5" value="20" inputmode="numeric"> % และ ≥ <input id="rtBaht" type="number" min="0" step="100" value="1000" inputmode="numeric"> ฿</label>
       <label class="togg flow-f v-rt" for="rtAll" hidden><input type="checkbox" id="rtAll"><span>แสดงบัญชีที่โอนไปมาด้วย</span></label>
@@ -707,7 +737,8 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
         <button type="button" id="mnext" aria-label="เดือนถัดไป">&#8250;</button>
       </div>
       <div class="chips" id="mchips"></div>
-      <label class="togg" for="hidewd"><input type="checkbox" id="hidewd"><span>ซ่อนแถว "ถอน (คู่ของยอดฝาก)"</span></label>
+      <label class="togg" for="hidewd" hidden><input type="checkbox" id="hidewd"><span>ซ่อนแถว</span></label>
+      <p class="exnote" id="cxNote">คู่ถอน/ฝากแสดงเป็นบรรทัดเดียว · <b>ควรตรวจ</b> = รายการที่มีจุดน่าสังเกต (ห่างหลายวัน เวลาไม่ตรง ยอดสูง คำค้นสั้น) · <b>มั่นใจสูง</b> ซ่อนไว้ · กด <b>ไม่ตัด</b> เพื่อเก็บรายการนั้นไว้</p>
       <div id="days"></div>
     </div>
     <div class="dlbar">
@@ -1465,6 +1496,7 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
   const bankCol = (grid[headerRow]||[]).findIndex(v=>v!=null && String(v).trim()==="ธนาคาร");
   const bankTxt = row => bankCol>=0 && row[bankCol]!=null ? String(row[bankCol]).trim() : "";
   let lastBank = null;
+  const exCol = (grid[headerRow]||[]).findIndex(v=>v!=null && /^ยกเว้น/.test(String(v).trim()));
   for(let r=headerRow+1;r<grid.length;r++){
     const row = grid[r]; if(!row) continue;
     const joined = row.filter(v=>v!=null).join(" ");
@@ -1486,7 +1518,8 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
     const wdA=parseLooseAmount(g(row,"wd")), depA=parseLooseAmount(g(row,"dep")), amtA=parseLooseAmount(g(row,"amt")), balA=parseLooseAmount(g(row,"bal"));
     const bt = bankTxt(row), seg = !!(bt && lastBank!=null && bt!==lastBank && raws.length && !raws[raws.length-1].open);
     if(bt) lastBank = bt;
-    raws.push({date:{y:d.y,m:d.m,d:d.d}, time, type:g(row,"type"), ref:g(row,"ref"), desc:g(row,"desc"), wdA, depA, amtA, balA, bankLabel:bt, segStart:seg});
+    raws.push({date:{y:d.y,m:d.m,d:d.d}, time, type:g(row,"type"), ref:g(row,"ref"), desc:g(row,"desc"), wdA, depA, amtA, balA, bankLabel:bt, segStart:seg,
+      manualEx: exCol>=0 && /เลือกเอง/.test(String(row[exCol]==null?"":row[exCol]))});
   }
   if(!raws.length) return {rows:[], bankCode:code, bankName, error:"ไม่พบรายการใต้หัวตาราง — ตรวจการจับคู่คอลัมน์"};
   let prev=opening; const rows=[];
@@ -1503,7 +1536,7 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
     const desc = r.desc==null?"":String(r.desc).replace(/\s+/g," ").trim();
     const type = r.type!=null && String(r.type).trim() ? String(r.type).trim() : inferType(desc, wd, dep);
     if(r.ref==null || !String(r.ref).trim()) r.ref = refFromDesc(desc);
-    rows.push({date:r.date, time:r.time, type, ref: r.ref==null?"":String(r.ref).trim(), desc, wd, dep, bal, raw:[r.wdA,r.depA,r.amtA,r.balA].filter(Boolean).map(a=>({v:a.v,sign:a.sign})), bankLabel:r.bankLabel, segStart:r.segStart});
+    rows.push({date:r.date, time:r.time, type, ref: r.ref==null?"":String(r.ref).trim(), desc, wd, dep, bal, raw:[r.wdA,r.depA,r.amtA,r.balA].filter(Boolean).map(a=>({v:a.v,sign:a.sign})), bankLabel:r.bankLabel, segStart:r.segStart, manualEx:r.manualEx});
     if(bal!=null) prev=bal; else if(prev!=null) prev=prev-wd+dep;
   }
   const out = finalizeRows(rows, opening, bankName, openingDate);
@@ -1672,7 +1705,7 @@ function cutTable(){
   const list = allRows();
   const LAY = exportLayout(list.map(x=>x.r));
   const AC = accountLabeler(list);
-  const rows=[]; let lastDate=null;
+  const rows=[], manualIdx=[]; let lastDate=null;
   if(!AC.multi && LAY.openingRow){
     const o = LAY.openingRow, bankName = (list.find(x=>x.r.bank)||{r:{}}).r.bank || null;
     rows.push([ o.date ? new Date(Date.UTC(o.date.y, o.date.m-1, o.date.d)) : null, null, "ยอดยกมา", null, "ยอดยกมา", 0, 0, o.bal/100, bankName, "พร้อมใช้งาน", null ]);
@@ -1686,10 +1719,11 @@ function cutTable(){
       continue;
     }
     const d = (r.date && r.date.y) ? r.date : lastDate; if(r.date && r.date.y) lastDate=r.date;
+    if(r.manualEx) manualIdx.push(rows.length);
     rows.push([ d ? new Date(Date.UTC(d.y, d.m-1, d.d)) : null, r.time||null, ...LAY.cells(r), r.ref||null, LAY.desc(r),
       (r.wd||0)/100, (r.dep||0)/100, r.bal==null?null:r.bal/100, AC.label(r,f), r.ok?"พร้อมใช้งาน":"ต้องตรวจสอบ", r.ok?null:(r.warn||null) ]);
   }
-  return { sheetName:"Transactions", headers:LAY.headers.slice(), accounts:AC.count,
+  return { sheetName:"Transactions", headers:LAY.headers.slice(), accounts:AC.count, manualEx:manualIdx,
     cols:{dt:0, time:1, type:2, channel:-1, ref:3, detail:4, w:5, d:6, bal:7, bank:8}, rows };
 }
 let cutTimer=null, reviewAuto=false;
@@ -2362,6 +2396,18 @@ function matchTransfers(table, X, tol) {
   return { T, pairs, accounts };
 }
 
+/* คีย์ของแถวจากเนื้อหา (วันที่|เวลา|ถอน|ฝาก|คงเหลือ|บัญชี#ลำดับซ้ำ) ใช้จำรายการที่เลือก "ไม่ตัด" เอง แม้ตารางจะถูกสร้างใหม่ */
+function rowKeys(table) {
+  if (table.__keys) return table.__keys;
+  const { rows, cols } = table, seen = new Map();
+  table.__keys = rows.map(r => {
+    const d = r[cols.dt];
+    const base = [d instanceof Date ? d.toISOString().slice(0, 10) : '', cols.time >= 0 && r[cols.time] != null ? String(r[cols.time]) : '',
+      numOr0(r[cols.w]).toFixed(2), numOr0(r[cols.d]).toFixed(2), r[cols.bal] == null ? '' : String(r[cols.bal]), cols.bank >= 0 && r[cols.bank] != null ? String(r[cols.bank]) : ''].join('|');
+    const k = (seen.get(base) || 0) + 1; seen.set(base, k); return base + '#' + k;
+  });
+  return table.__keys;
+}
 /* ---------- replicate the workbook formulas for preview + cached results ---------- */
 function compute(table, settings) {
   const { rows, cols } = table;
@@ -2376,7 +2422,10 @@ function compute(table, settings) {
   const day = i => (rows[i][cols.dt] instanceof Date ? Math.floor(serial(rows[i][cols.dt])) : null);
   const key = (dd, a) => dd + '|' + a.toFixed(2);
   const lower = (r, c) => (c >= 0 && r[c] != null ? String(r[c]).toLowerCase() : '');
-  const X = rows.map(r => {
+  const manual = new Set(settings.manualEx || []), keys = manual.size ? rowKeys(table) : null;
+  const manualX = rows.map((_, i) => !!(keys && manual.has(keys[i])));
+  const X = rows.map((r, i) => {
+    if (manualX[i]) return true;
     const det = lower(r, cols.detail), ty = lower(r, cols.type);
     const ch = lower(r, cols.channel == null ? -1 : cols.channel);
     return (cols.detail >= 0 && exNames.some(nm => det.includes(nm.toLowerCase()))) || (!!ty && exTypes.includes(ty))
@@ -2446,8 +2495,8 @@ function compute(table, settings) {
   const acctSummary = [...byAcct.values()]; acctSummary.forEach(sumNet);
   const minD = dates.length ? new Date(Math.min(...dates)) : null, maxD = dates.length ? new Date(Math.max(...dates)) : null;
   let saved = [0, 0]; const savedList = [];
-  if ((exNames.length || exTypes.length) && !settings.__noEx) {
-    const plain = compute(table, Object.assign({}, settings, { exNames: [], exTypes: [], __noEx: true }));
+  if ((exNames.length || exTypes.length || manual.size) && !settings.__noEx) {
+    const plain = compute(table, Object.assign({}, settings, { exNames: [], exTypes: [], manualEx: [], __noEx: true }));
     for (let i = 0; i < n; i++) {
       if (!X[i]) continue;
       const opt = optOf(plain, i);
@@ -2456,7 +2505,7 @@ function compute(table, settings) {
       savedList.push({ i, opt, sub: optSub(plain, i, opt) });
     }
   }
-  return { T, L, M, N, O, X, saved, savedList, summary, months, minD, maxD, dateCount: dates.length, names, types: (settings.types || []).slice(),
+  return { T, L, M, N, O, X, manualX, saved, savedList, summary, months, minD, maxD, dateCount: dates.length, names, types: (settings.types || []).slice(),
     kb, typeWords: (settings.typeWords || []).slice(), pairs, allPairs, accounts: xm.accounts, xferOn, xferDays, acctSummary,
     exNames, exTypes: (settings.exTypes || []).slice(), gt, lt, zeros: zr };
 }
@@ -2554,6 +2603,7 @@ function buildWorkbook(ExcelJS, table, settings) {
       const c = ws.getCell(r, hc[k]);
       c.alignment = { horizontal: 'center' };
       if (!f[k]) continue;
+      if (k === 'P' && res.manualX[idx]) { c.value = 'ยกเว้น (เลือกเอง)'; continue; }   // เลือก "ไม่ตัด" เองในหน้าเว็บ
       const result = k === 'P' ? (res.X[idx] ? 'ยกเว้น' : '') : res[k][idx];
       c.value = result ? { formula: f[k], result } : { formula: f[k] };
     }
@@ -2769,8 +2819,8 @@ function buildWorkbook(ExcelJS, table, settings) {
   T('C31', F2('SUM(C26:C30)', totCnt), { font: { bold: true }, fill: COLORS.tot, border: box, align: { horizontal: 'center' }, numFmt: '#,##0' });
   T('D31', F2('SUM(D26:D30)', totAmt), { font: { bold: true }, fill: COLORS.tot, border: box, numFmt: NUM });
   T('B32', 'ยกเว้นไม่ตัด', { font: {}, border: box, align: { indent: 1 } });
-  T('C32', F2(`COUNTIF(${TP},"ยกเว้น")`, res.X.filter(Boolean).length), { font: {}, border: box, align: { horizontal: 'center' }, numFmt: '#,##0;-#,##0;"-"' });
-  T('D32', F2(`SUMIFS(${TG},${TP},"ยกเว้น")`, rows.reduce((a, r0, i0) => a + (res.X[i0] ? numOr0(r0[cols.d]) : 0), 0)), { font: {}, border: box, numFmt: NUM });
+  T('C32', F2(`COUNTIF(${TP},"ยกเว้น*")`, res.X.filter(Boolean).length), { font: {}, border: box, align: { horizontal: 'center' }, numFmt: '#,##0;-#,##0;"-"' });
+  T('D32', F2(`SUMIFS(${TG},${TP},"ยกเว้น*")`, rows.reduce((a, r0, i0) => a + (res.X[i0] ? numOr0(r0[cols.d]) : 0), 0)), { font: {}, border: box, numFmt: NUM });
   T('E32', 'สีเทา', { font: {}, border: box, fill: COLORS.ex, align: { horizontal: 'center' } });
   hint('B33', '* ตัวเลือก 1 และ 2 นับทั้งแถวถอนและแถวฝาก  |  แถวที่ตรงหลายตัวเลือก นับในตัวเลือกแรกที่ตรงเท่านั้น  |  แถวที่ยกเว้นจะไม่ถูกตัดทุกกรณี');
 
@@ -2876,7 +2926,7 @@ function buildWorkbook(ExcelJS, table, settings) {
   return { wb, res };
 }
 
-if (typeof module !== 'undefined') module.exports = { extractTable, compute, buildWorkbook, matchTransfers, depositTypes, allTypes, colLetter };
+if (typeof module !== 'undefined') module.exports = { extractTable, compute, buildWorkbook, matchTransfers, rowKeys, depositTypes, allTypes, colLetter };
 
 </script>
 <script>
@@ -2949,13 +2999,22 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
       .map(k => `<option value="${k}">${TH_MONTHS[k % 12]} ${Math.floor(k / 12)}</option>`).join('');
     sel.value = [...sel.options].some(o => o.value === prev) ? prev : 'all';
     flow.month = sel.value; flow.sel = null;
+    // เลือกบัญชีที่แสดง (เมื่อมีหลายบัญชี)
+    const accts = table.cols.bank >= 0 ? [...new Set(table.rows.map(r => String(r[table.cols.bank] == null ? '' : r[table.cols.bank]).trim()).filter(Boolean))] : [];
+    const as = $('flowAcct'), pa = as.value;
+    as.innerHTML = '<option value="">ทุกบัญชีรวมกัน</option>' + accts.map(a => `<option>${escH(a)}</option>`).join('');
+    as.value = accts.length > 1 && accts.includes(pa) ? pa : '';
+    $('flowAcctWrap').hidden = accts.length < 2;
+    flow.acct = as.value;
   }
+  const acctShort = a => { const m = String(a || '').match(/บัญชี\s+(\S+)\s*$/); return m ? m[1] : String(a || '').split(' · ').pop(); };
   function computeFlow() {
     const { rows, cols } = table, res = lastRes;
     const inMap = new Map(), outMap = new Map();
     rows.forEach((r, i) => {
       const d = r[cols.dt];
       if (flow.month !== 'all' && !(d instanceof Date && d.getUTCFullYear() * 12 + d.getUTCMonth() === +flow.month)) return;
+      if (flow.acct && String(r[cols.bank] == null ? '' : r[cols.bank]).trim() !== flow.acct) return;
       if (flow.excludeCut && res && optOf(res, i) >= 0) return;
       const g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0;
       if (g <= 0 && w <= 0) return;
@@ -3128,7 +3187,8 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     const cTop = TOP + (H - cH) / 2;
     el('rect', { x: xC, y: cTop, width: CW, height: Math.max(cH, 60), rx: 8, fill: 'var(--node-fill)', stroke: 'var(--node-line)', 'stroke-width': 1 }, nodes);
     const cMid = cTop + Math.max(cH, 60) / 2;
-    txt(xC + CW / 2, cMid, 'บัญชีเรา', 'mf-c1', 'middle', nodes);
+    if (flow.acct) { txt(xC + CW / 2, cMid - 9, 'บัญชีเรา', 'mf-c1', 'middle', nodes); txt(xC + CW / 2, cMid + 10, acctShort(flow.acct), 'sk-cnt', 'middle', nodes); }
+    else txt(xC + CW / 2, cMid, 'บัญชีเรา', 'mf-c1', 'middle', nodes);
     const fits = [];
     const side = (R, left) => {
       const tot = R.tot || 1;
@@ -3261,7 +3321,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     [7, 34, 13, 11, 18, 13, 3, 7, 34, 13, 11, 18, 13, 3, 3].forEach((w, i) => { sh.getColumn(i + 1).width = w; });
     const monthTxt = flow.month === 'all' ? 'ทุกเดือน' : `${TH_MONTHS[flow.month % 12]} ${Math.floor(flow.month / 12)}`;
     sh.getCell('A1').value = 'แผนภาพการไหลของเงิน (Sankey) — ใครโอนเข้าบัญชีเรา และเราโอนให้ใคร'; sh.getCell('A1').font = f({ size: 16, bold: true, color: COLORS.navy });
-    sh.getCell('A2').value = `ช่วงข้อมูล: ${monthTxt} · แสดงเฉพาะบัญชีที่มีนัยยะ (ยอดตั้งแต่ ${MF_MIN * 100}% ของยอดฝั่งนั้น สูงสุดฝั่งละ ${MF_MAX} บัญชี)`;
+    sh.getCell('A2').value = `ช่วงข้อมูล: ${monthTxt}${flow.acct ? ' · ' + flow.acct : ''} · แสดงเฉพาะบัญชีที่มีนัยยะ (ยอดตั้งแต่ ${MF_MIN * 100}% ของยอดฝั่งนั้น สูงสุดฝั่งละ ${MF_MAX} บัญชี)`;
     sh.getCell('A2').font = f({ size: 11, color: COLORS.hint });
     sh.getCell('A3').value = `โอนเข้าทั้งหมด ${fmtInt(I.cnt)} ครั้ง · ${fmt(I.tot)} บาท  |  โอนออกทั้งหมด ${fmtInt(O.cnt)} ครั้ง · ${fmt(O.tot)} บาท  |  สุทธิ ${fmt(I.tot - O.tot)} บาท`;
     sh.getCell('A3').font = f({ size: 12, bold: true });
@@ -3398,8 +3458,12 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   function setStatus(text, kind) { const s = $('status'); s.textContent = text || ''; s.className = 'status' + (kind ? ' ' + kind : ''); }
 
   /* input comes straight from stage 2 (the checked rows), not from a file */
+  const manualEx = new Set();          // รายการที่ผู้ใช้กด "ไม่ตัด" เอง (คีย์จากเนื้อหาแถว)
+  const cxState = { okOpen: false, closed: new Set() };
+  const manualGrp = new Map();          // คีย์ → คีย์ทั้งคู่ที่กดไม่ตัดพร้อมกัน
   function loadTable(t, base) {
     table = t; fileBase = base || 'Statement';
+    if (t.manualEx && t.manualEx.length) { const k = rowKeys(t); t.manualEx.forEach(i => manualEx.add(k[i])); }
     buildTypeList();
     initFlow();
     $('step2').hidden = false; $('step3').hidden = false;
@@ -3495,7 +3559,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     return { names: readNames('names', 'ncount'), gt: num('gt'), lt: num('lt'), zeros: $('zeros').value ? +$('zeros').value : null, types: checked('types'),
       typeWords: $('typeWordBox').hidden ? [] : readNames('typewords', 'twcount'),
       exNames: readNames('exnames', 'excount'), exTypes: checked('extypes'),
-      xfer: $('xfer').checked, xferDays: +$('xferDays').value || 0 };
+      xfer: $('xfer').checked, xferDays: +$('xferDays').value || 0, manualEx: [...manualEx] };
   }
   function renderXfer(res) {
     const multi = res.accounts.length > 1, rows = table.rows, cols = table.cols;
@@ -3567,75 +3631,161 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     renderDetail();
   }
 
+  /* ===== รายการที่ตัดแต่ละเดือน: รวมคู่เป็นบรรทัดเดียว (A) · จัดกลุ่มตามเหตุผล (B) · แยก "ควรตรวจ / มั่นใจสูง" (C) · ปุ่มไม่ตัด (D) ===== */
+  const fmtMin = m => (m >= 60 ? `${Math.floor(m / 60)} ชม. ${m % 60 ? (m % 60) + ' นาที' : ''}` : `${m} นาที`).trim();
+  const dShort = d => d instanceof Date ? `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}` : '';
+  function buildCutLines(res, mo, selA) {
+    const { rows, cols } = table, keys = rowKeys(table);
+    const acctOf = i => (cols.bank >= 0 && rows[i][cols.bank] != null ? String(rows[i][cols.bank]).trim() : '');
+    const inMonth = i => { const d = rows[i][cols.dt]; return d instanceof Date && d.getUTCFullYear() === mo.y && d.getUTCMonth() === mo.m; };
+    const okAcct = ix => !selA || ix.some(i => acctOf(i) === selA);
+    const dep = i => numOr0(rows[i][cols.d]), wdr = i => numOr0(rows[i][cols.w]);
+    const mins = i => { const t = cols.time >= 0 ? timeText(rows[i][cols.time]) : ''; const m = t.match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+    const det = i => (cols.detail >= 0 && rows[i][cols.detail] != null ? String(rows[i][cols.detail]) : '');
+    const typ = i => (cols.type >= 0 && rows[i][cols.type] != null ? String(rows[i][cols.type]) : '');
+    const deps = rows.map(r => numOr0(r[cols.d])).filter(x => x > 0).sort((a, b) => a - b);
+    const BIG = Math.max(100000, deps.length ? deps[Math.floor(deps.length * 0.95)] : 0);
+    const multi = res.accounts.length > 1;
+    const lines = [], used = new Set();
+    const tdFlag = (a, b, flags) => { const x = mins(a), y = mins(b); if (x == null || y == null) flags.push('ไม่มีเวลาให้เทียบ'); else if (Math.abs(x - y) > 10) flags.push('เวลาต่างกัน ' + fmtMin(Math.abs(x - y))); };
+    // A: คู่โอนระหว่างบัญชี = 1 บรรทัด
+    (res.pairs || []).forEach(p => {
+      if (!inMonth(p.d) || !okAcct([p.w, p.d])) return;
+      used.add(p.w); used.add(p.d);
+      const flags = []; if (p.dd > 0) flags.push(`ห่าง ${p.dd} วัน`); else tdFlag(p.w, p.d, flags);
+      if (p.amt >= BIG) flags.push('ยอดสูง');
+      lines.push({ opt: 0, grp: 'โอนระหว่างบัญชีตัวเอง', ix: [p.w, p.d], amount: p.amt, flags, at: p.d,
+        when: p.dd ? `${dShort(rows[p.w][cols.dt])} → ${dShort(rows[p.d][cols.dt])}` : dShort(rows[p.d][cols.dt]),
+        time: [timeText(rows[p.w][cols.time]), timeText(rows[p.d][cols.time])].filter(Boolean).filter((v, k, a) => a.indexOf(v) === k).join(' / '),
+        title: `${acctShort(p.from)} → ${acctShort(p.to)}`, sub: `ถอน: ${det(p.w)}  ·  ฝาก: ${det(p.d)}` });
+    });
+    // A: คู่ถอน/ฝากซ้ำวันเดียวกัน = 1 บรรทัด
+    const lg = new Map();
+    rows.forEach((r, i) => {
+      if (optOf(res, i) !== 1 || used.has(i) || !inMonth(i)) return;
+      const d = r[cols.dt], amt = dep(i) > 0 ? dep(i) : wdr(i), k = Math.floor(serial(d)) + '|' + amt.toFixed(2);
+      if (!lg.has(k)) lg.set(k, { d: [], w: [] }); lg.get(k)[dep(i) > 0 ? 'd' : 'w'].push(i);
+    });
+    lg.forEach(g => {
+      const n = Math.max(g.d.length, g.w.length);
+      for (let k = 0; k < n; k++) {
+        const di = g.d[k], wi = g.w[k], ix = [wi, di].filter(x => x != null);
+        if (!okAcct(ix)) continue;
+        const flags = []; if (di != null && wi != null) tdFlag(wi, di, flags); else flags.push('ไม่พบคู่');
+        const amt = di != null ? dep(di) : 0;
+        if (amt >= BIG) flags.push('ยอดสูง');
+        const at = di != null ? di : wi;
+        lines.push({ opt: 1, grp: 'ซ้ำ ถอน/ฝาก วันเดียวกัน', ix, amount: amt, flags, at, when: dShort(rows[at][cols.dt]),
+          time: ix.map(i => timeText(rows[i][cols.time])).filter(Boolean).join(' / '),
+          title: multi && wi != null && di != null && acctOf(wi) !== acctOf(di) ? `${acctShort(acctOf(wi))} → ${acctShort(acctOf(di))}` : `ถอนแล้วฝากคืน ${fmt(amt || wdr(wi))}`,
+          sub: [wi != null ? 'ถอน: ' + det(wi) : '', di != null ? 'ฝาก: ' + det(di) : ''].filter(Boolean).join('  ·  ') });
+      }
+    });
+    // ยอดฝากเดี่ยว: ตามชื่อ / ตามยอดเงิน / ประเภท
+    rows.forEach((r, i) => {
+      const opt = optOf(res, i);
+      if (opt < 2 || !inMonth(i) || dep(i) <= 0 || !okAcct([i])) return;
+      const flags = []; let grp = '';
+      if (opt === 2) {
+        const dl = det(i).toLowerCase(), nm = (res.names || []).find(x => dl.includes(x.toLowerCase())) || '';
+        grp = `ตามชื่อ: ${nm}`; if (nm && nm.length < 4) flags.push(`คำ "${nm}" สั้น อาจตรงชื่ออื่น`);
+      } else if (opt === 3) grp = `ตามยอดเงิน: ${res.N[i]}`;
+      else grp = `ประเภท/ช่องทาง: ${typ(i) || '-'}`;
+      if (dep(i) >= BIG) flags.push('ยอดสูง');
+      lines.push({ opt, grp, ix: [i], amount: dep(i), flags, at: i, when: dShort(rows[i][cols.dt]), time: timeText(rows[i][cols.time]),
+        title: det(i) || typ(i) || '-', sub: [typ(i), multi ? acctShort(acctOf(i)) : ''].filter(Boolean).join(' · ') });
+    });
+    lines.forEach(l => { l.keys = l.ix.map(i => keys[i]); l.review = l.flags.length > 0; });
+    lines.sort((a, b) => a.opt - b.opt || a.at - b.at);
+    // รายการที่เลือก "ไม่ตัด" เองในเดือนนี้
+    const kept = [];
+    rows.forEach((r, i) => { if (res.manualX[i] && inMonth(i) && okAcct([i])) kept.push({ i, key: keys[i], amount: dep(i) || wdr(i), isDep: dep(i) > 0 }); });
+    return { lines, kept, BIG };
+  }
   function renderDetail() {
     const res = lastRes; if (!res) return;
     const months = res.months;
     if (!months.length) { $('detail').hidden = true; return; }
     $('detail').hidden = false;
     monthIdx = Math.max(0, Math.min(monthIdx, months.length - 1));
-    const mo = months[monthIdx];
-    const { rows, cols } = table;
-    const items = [], selA = $('monAcct').value;
+    const mo = months[monthIdx], selA = $('monAcct').value, { rows, cols } = table;
     const md = selA ? ((mo.acct && mo.acct[selA]) || { d: OPT.map(() => 0) }).d : mo.d;
-    rows.forEach((r, i) => {
-      const d = r[cols.dt];
-      if (!(d instanceof Date) || d.getUTCFullYear() !== mo.y || d.getUTCMonth() !== mo.m) return;
-      if (selA && String(r[cols.bank] == null ? '' : r[cols.bank]).trim() !== selA) return;
-      const opt = optOf(res, i);
-      if (opt < 0) return;
-      const g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0;
-      items.push({ i, d, opt, g, w, sub: optSub(res, i, opt) });
-    });
-    const hideWd = $('hidewd').checked;
-    const shown = hideWd ? items.filter(x => x.g > 0) : items;
-    const cutDeposits = items.filter(x => x.g > 0);
-    const cutSum = cutDeposits.reduce((s, x) => s + x.g, 0);
-    $('mname').textContent = `${TH_MONTHS[mo.m]} ${mo.y}` + (selA ? ` · ${selA}` : '');
-    $('mstat').textContent = items.length ? `ตัดยอดฝาก ${cutDeposits.length} รายการ รวม ${fmt(cutSum)} บาท` : 'ไม่มีรายการที่ถูกตัด';
-    $('hidewd').parentElement.hidden = !items.some(x => x.g <= 0);
-    $('mprev').disabled = monthIdx === 0;
-    $('mnext').disabled = monthIdx === months.length - 1;
+    const { lines, kept } = buildCutLines(res, mo, selA);
+    const sum = l => l.reduce((a, x) => a + x.amount, 0);
+    const review = lines.filter(l => l.review), ok = lines.filter(l => !l.review);
+    $('mname').textContent = `${TH_MONTHS[mo.m]} ${mo.y}` + (selA ? ` · ${acctShort(selA)}` : '');
+    $('mstat').textContent = lines.length ? `ตัดยอดฝาก ${fmt(sum(lines))} บาท · ควรตรวจ ${review.length} · มั่นใจสูง ${ok.length}` : 'ไม่มีรายการที่ถูกตัด';
+    $('mprev').disabled = monthIdx === 0; $('mnext').disabled = monthIdx === months.length - 1;
     const chips = $('mchips'); chips.textContent = '';
     md.forEach((x, k) => {
-      const n = shown.filter(it => it.opt === k).length;
-      if (!n) return;
+      if (!x) return;
       const c = document.createElement('span');
       c.innerHTML = `<span class="sw" style="background:var(${OPT[k][1]})"></span>`;
-      c.append(`${OPT[k][0]} ${n} แถว, ${fmt(x)} บาท`);
-      chips.append(c);
+      c.append(`${OPT[k][0]} ${fmt(x)} บาท`); chips.append(c);
     });
     const box = $('days'); box.textContent = '';
-    if (!shown.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'เดือนนี้ไม่มีรายการที่ถูกตัดตามค่าที่ตั้งไว้'; box.append(e); return; }
-    const byDay = new Map();
-    shown.forEach(it => { const k = it.d.getUTCDate(); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(it); });
-    [...byDay.keys()].sort((a, b) => a - b).forEach(k => {
-      const list = byDay.get(k), d0 = list[0].d;
-      const dep = list.filter(x => x.g > 0);
-      const sec = document.createElement('section'); sec.className = 'day';
-      const head = document.createElement('div'); head.className = 'dayhead';
-      const hl = document.createElement('span'); hl.textContent = `${TH_DAYS[d0.getUTCDay()]} ${k} ${TH_MONTHS[mo.m]} ${mo.y}`;
-      const hs = document.createElement('small'); hs.textContent = `ตัดยอดฝาก ${dep.length} รายการ, ${fmt(dep.reduce((s, x) => s + x.g, 0))} บาท`;
-      head.append(hl, hs); sec.append(head);
-      list.forEach(it => {
-        const r = rows[it.i];
-        const el = document.createElement('div'); el.className = 'item' + (it.g > 0 ? '' : ' wd');
-        const tm = document.createElement('div'); tm.className = 'tm'; tm.textContent = cols.time >= 0 ? timeText(r[cols.time]) : '';
-        const what = document.createElement('div'); what.className = 'what';
-        const why = document.createElement('span'); why.className = 'why';
-        why.innerHTML = `<span class="sw" style="background:var(${OPT[it.opt][1]});margin-right:0"></span>`;
-        why.append(OPT[it.opt][0] + (it.sub ? ` (${it.sub})` : ''));
-        what.append(why);
-        if (cols.type >= 0 && r[cols.type] != null) { const ty = document.createElement('span'); ty.className = 'typ'; ty.textContent = String(r[cols.type]); what.append(ty); }
-        const desc = document.createElement('span'); desc.className = 'desc'; desc.textContent = cols.detail >= 0 && r[cols.detail] != null ? String(r[cols.detail]) : '';
-        what.append(desc);
-        const amt = document.createElement('div'); amt.className = 'amt';
-        if (it.g > 0) { amt.textContent = fmt(it.g); const sm = document.createElement('small'); sm.textContent = 'ฝาก'; amt.append(sm); }
-        else { amt.textContent = fmt(it.w); const sm = document.createElement('small'); sm.textContent = 'ถอน (คู่ของยอดฝาก)'; amt.append(sm); }
-        el.append(tm, what, amt); sec.append(el);
+    if (!lines.length && !kept.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'เดือนนี้ไม่มีรายการที่ถูกตัดตามค่าที่ตั้งไว้'; box.append(e); return; }
+    const lineEl = l => {
+      const el = document.createElement('div'); el.className = 'cx-line';
+      el.innerHTML = `<div class="cx-when"><b></b><small></small></div><div class="cx-what"><span class="cx-t"></span><span class="cx-sub"></span><span class="cx-flags"></span></div>` +
+        `<div class="cx-amt"></div><button class="btn sm cx-ex" type="button" title="ไม่ตัดรายการนี้ (${l.ix.length > 1 ? 'ทั้งคู่' : 'รายการเดียว'})">ไม่ตัด</button>`;
+      el.querySelector('.cx-when b').textContent = l.when; el.querySelector('.cx-when small').textContent = l.time || '';
+      el.querySelector('.cx-t').textContent = l.title; el.querySelector('.cx-sub').textContent = l.sub;
+      const fl = el.querySelector('.cx-flags'); l.flags.forEach(f => { const s = document.createElement('span'); s.className = 'cx-flag'; s.textContent = f; fl.append(s); });
+      el.querySelector('.cx-amt').textContent = fmt(l.amount);
+      el.querySelector('.cx-ex').dataset.keys = JSON.stringify(l.keys);
+      return el;
+    };
+    const groups = (list, sec) => {
+      const wrap = document.createElement('div'); wrap.className = 'cx-groups';
+      const by = new Map(); list.forEach(l => { if (!by.has(l.grp)) by.set(l.grp, []); by.get(l.grp).push(l); });
+      by.forEach((ls, g) => {
+        const id = sec + '|' + g, det = document.createElement('details'); det.className = 'cx-grp'; det.open = !cxState.closed.has(id);
+        det.addEventListener('toggle', () => { if (det.open) cxState.closed.delete(id); else cxState.closed.add(id); });
+        const sm = document.createElement('summary');
+        sm.innerHTML = `<span class="sw" style="background:var(${OPT[ls[0].opt][1]})"></span><b></b><span class="cx-gs"></span>`;
+        sm.querySelector('b').textContent = g;
+        sm.querySelector('.cx-gs').textContent = `${ls.length} ${ls[0].ix.length > 1 ? 'คู่' : 'รายการ'} · ${fmt(sum(ls))} บาท`;
+        det.append(sm); ls.forEach(l => det.append(lineEl(l))); wrap.append(det);
       });
-      box.append(sec);
-    });
+      return wrap;
+    };
+    // C: ควรตรวจ (เปิด) · มั่นใจสูง (พับ)
+    const rv = document.createElement('section'); rv.className = 'cx-sec cx-review';
+    rv.innerHTML = `<div class="cx-sec-h"><span class="cx-ic">!</span><b>ควรตรวจ</b><span class="cx-gs"></span></div>`;
+    rv.querySelector('.cx-gs').textContent = review.length ? `${review.length} รายการ · ${fmt(sum(review))} บาท` : 'ไม่มี — เดือนนี้ไม่ต้องตรวจเพิ่ม';
+    if (review.length) rv.append(groups(review, 'rv'));
+    box.append(rv);
+    if (ok.length) {
+      const od = document.createElement('details'); od.className = 'cx-sec cx-ok'; od.open = cxState.okOpen;
+      od.addEventListener('toggle', () => { cxState.okOpen = od.open; });
+      const sm = document.createElement('summary');
+      sm.innerHTML = `<span class="cx-ic ok">✓</span><b>มั่นใจสูง</b><span class="cx-gs"></span><span class="cx-hint">กดเพื่อดู</span>`;
+      sm.querySelector('.cx-gs').textContent = `${ok.length} รายการ · ${fmt(sum(ok))} บาท`;
+      od.append(sm, groups(ok, 'ok')); box.append(od);
+    }
+    if (kept.length) {
+      const kd = document.createElement('section'); kd.className = 'cx-sec cx-kept';
+      kd.innerHTML = `<div class="cx-sec-h"><span class="cx-ic kept">↺</span><b>ไม่ตัด (เลือกเอง)</b><span class="cx-gs"></span></div>`;
+      kd.querySelector('.cx-gs').textContent = `${kept.length} รายการ`;
+      kept.forEach(k => {
+        const el = document.createElement('div'); el.className = 'cx-line';
+        el.innerHTML = `<div class="cx-when"><b></b><small></small></div><div class="cx-what"><span class="cx-t"></span><span class="cx-sub"></span></div><div class="cx-amt"></div><button class="btn sm cx-back" type="button">กลับมาตัด</button>`;
+        el.querySelector('.cx-when b').textContent = dShort(rows[k.i][cols.dt]); el.querySelector('.cx-when small').textContent = timeText(rows[k.i][cols.time]);
+        el.querySelector('.cx-t').textContent = cols.detail >= 0 && rows[k.i][cols.detail] != null ? String(rows[k.i][cols.detail]) : '-';
+        el.querySelector('.cx-sub').textContent = k.isDep ? 'ฝาก' : 'ถอน';
+        el.querySelector('.cx-amt').textContent = fmt(k.amount);
+        el.querySelector('.cx-back').dataset.key = k.key;
+        kd.append(el);
+      });
+      box.append(kd);
+    }
   }
+  $('days').addEventListener('click', e => {
+    const ex = e.target.closest('.cx-ex'), back = e.target.closest('.cx-back');
+    if (ex) { const ks = JSON.parse(ex.dataset.keys || '[]'); ks.forEach(k => { manualEx.add(k); manualGrp.set(k, ks); }); update(); }
+    if (back) { (manualGrp.get(back.dataset.key) || [back.dataset.key]).forEach(k => { manualEx.delete(k); manualGrp.delete(k); }); update(); }   // คู่กลับมาตัดพร้อมกัน
+  });
   const schedule = () => { clearTimeout(timer); timer = setTimeout(update, 150); };
 
   // ดาวน์โหลดสำเร็จแล้ว → ล้างค่าทั้งหมดอัตโนมัติ พร้อมรับไฟล์ถัดไป
@@ -3693,10 +3843,11 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   $('dlname').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); download(); } });
   window.__cut.reset = () => {
     table = null; lastRes = null; monthIdx = 0;
-    Object.assign(flow, { view: 'flow', top: 5, month: 'all', excludeCut: false, showAll: false, minPct: 20, minBaht: 1000, sel: null });
+    Object.assign(flow, { acct: '', view: 'flow', top: 5, month: 'all', excludeCut: false, showAll: false, minPct: 20, minBaht: 1000, sel: null });
     $('flowEx').checked = false; $('rtAll').checked = false; applyView(); $('rtPct').value = 20; $('rtBaht').value = 1000; $('rtCutMsg').textContent = '';
     for (const id of ['names', 'exnames', 'gt', 'lt', 'typewords', 'zeros']) $(id).value = '';
     $('xfer').checked = true; $('xferDays').value = '0'; $('xferBox').hidden = true;
+    manualEx.clear(); manualGrp.clear(); cxState.okOpen = false; cxState.closed.clear();
     $('typeWordBox').hidden = true; $('twcount').textContent = '0 / 10 คำ';
     for (const id of ['types', 'extypes']) { $(id).textContent = ''; delete $(id).dataset.ready; }
     const fn = $('dlname'); fn.value = ''; delete fn.dataset.touched;
@@ -3704,6 +3855,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     readNames('names', 'ncount'); readNames('exnames', 'excount');
   };
   $('flowMonth').addEventListener('change', e => { flow.month = e.target.value; renderFlow(); });
+  $('flowAcct').addEventListener('change', e => { flow.acct = e.target.value; flow.sel = null; renderFlow(); });
   $('flowEx').addEventListener('change', e => { flow.excludeCut = e.target.checked; renderFlow(); });
   $('rtAll').addEventListener('change', e => { flow.showAll = e.target.checked; renderFlow(); });
   $('rtPct').addEventListener('input', e => { const v = +e.target.value; if (isFinite(v)) { flow.minPct = Math.max(0, Math.min(100, v)); renderFlow(); } });
