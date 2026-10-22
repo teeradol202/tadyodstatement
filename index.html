@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="th">
-<head><script type="application/json" data-od-external-dependencies>["https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"]</script>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="แปลง Statement ธนาคาร (PDF/Excel) เป็น Excel ตรวจยอดคงเหลืออัตโนมัติ แล้วตัดยอดฝากและสรุปรายเดือน ประมวลผลในเบราว์เซอร์เท่านั้น">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#090C10">
 <title>แปลงStatementและตัดยอด</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Crect width='22' height='22' rx='5' fill='%2312231F'/%3E%3Crect x='5' y='3.5' width='12' height='15' rx='1.5' fill='none' stroke='%237CC4B0' stroke-width='1.6'/%3E%3Cpath d='M8 8h6M8 11h6M8 14h4' stroke='%237CC4B0' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<script type="application/json" data-od-external-dependencies>["https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js","https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js","https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"]</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -16,7 +16,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
-(function(){var t='dark';try{t=localStorage.getItem('ledgerline-theme')||'dark';}catch(e){}document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');})();
+(function(){var h=new Date().getHours();document.documentElement.setAttribute('data-theme',h>=6&&h<18?'light':'dark');})();   /* กลางวัน 06:00–17:59 · กลางคืน 18:00–05:59 ตามเวลาเครื่อง */
 </script>
 <style>
 :root{
@@ -58,6 +58,77 @@ h2{font-size:18px;font-weight:600;display:flex;align-items:center;gap:10px}
 .privacy{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
 .privacy b{color:var(--good);font-weight:600}
 .setup{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px}
+.setup.setup-one{grid-template-columns:minmax(0,1fr)}
+.reset-btn{color:var(--muted)}
+.reset-btn:hover{border-color:var(--bad);color:var(--bad)}
+.reset-btn.armed{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);font-weight:600}
+/* intro */
+.intro{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-items:start;padding:20px 24px;border:1px solid var(--line);border-radius:var(--radius-lg);
+  background:linear-gradient(135deg,var(--accent-soft),transparent 62%),var(--surface)}
+@media (max-width:860px){.intro{grid-template-columns:minmax(0,1fr)}}
+.intro-text{display:grid;gap:10px}
+.eyebrow{font:600 12px var(--body);letter-spacing:.06em;color:var(--accent)}
+.intro h2{font-size:21px;line-height:1.4;display:block}
+.intro-text{gap:6px}
+.intro p{margin:0;color:var(--muted);font-size:14px;max-width:68ch}
+.intro p b{color:var(--ink);font-weight:600}
+.intro-ex{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:4px;font-size:12.5px;color:var(--muted)}
+.ex-acct{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.ex-acct b{color:var(--ink);font:500 12.5px var(--mono)}
+.ex-dot{width:9px;height:9px;border-radius:50%}
+.ex-tag{color:var(--accent);font-weight:600}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:none}
+.steps li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.steps li b{display:block;font-family:var(--display);font-weight:600;font-size:14px}
+.steps li span:not(.step){display:block;font-size:12.5px;color:var(--muted);line-height:1.5}
+/* upload */
+.upload .drop{min-height:220px;padding:30px 20px;border-width:1.5px;border-radius:16px;gap:8px}
+.drop-ic{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);margin-bottom:4px;transition:transform .2s}
+.drop:hover .drop-ic,.drop.over .drop-ic{transform:translateY(-3px)}
+.drop strong u{color:var(--accent);text-underline-offset:3px}
+.drop-sub{font-size:13.5px;color:var(--ink);opacity:.85}
+.drop-note{font-size:12px;color:var(--muted);max-width:60ch}
+.fmt-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:4px 0}
+.fmt,.ftype{display:inline-grid;place-items:center;font:600 10.5px var(--mono);letter-spacing:.04em;border-radius:6px;padding:3px 7px}
+.fmt.pdf,.ftype.pdf{background:oklch(60% 0.16 25 / .16);color:oklch(72% 0.15 25)}
+.fmt.xls,.ftype.xls{background:oklch(60% 0.13 150 / .16);color:oklch(72% 0.14 150)}
+.fmt.csv,.ftype.csv{background:oklch(60% 0.1 250 / .16);color:oklch(74% 0.1 250)}
+:root[data-theme="light"] .fmt.pdf,:root[data-theme="light"] .ftype.pdf{color:oklch(50% 0.17 25)}
+:root[data-theme="light"] .fmt.xls,:root[data-theme="light"] .ftype.xls{color:oklch(45% 0.13 150)}
+:root[data-theme="light"] .fmt.csv,:root[data-theme="light"] .ftype.csv{color:oklch(45% 0.1 250)}
+.ftype{width:42px;height:42px;border-radius:10px;font-size:11px;flex:none}
+.file{grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:start;padding:12px 14px}
+.file > .ftype{grid-row:1 / span 3}
+.file-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12.5px;color:var(--muted)}
+.bchip{display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-weight:500}
+.bchip i{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;color:#fff;font:700 7.5px var(--display);font-style:normal;letter-spacing:0}
+.file-acts{display:flex;gap:6px;align-items:center}
+.linkbtn{appearance:none;border:0;background:none;color:var(--accent);font:500 12.5px var(--body);cursor:pointer;padding:2px 4px;border-radius:6px}
+.linkbtn:hover{text-decoration:underline}
+.linkbtn:focus-visible{outline:2px solid var(--accent)}
+/* setup dialog cards */
+.su-row{grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:start}
+.su-row > .ftype{grid-row:1 / span 3}
+.su-row.locked{border-color:var(--warn)}
+.su-det{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12.5px;color:var(--muted)}
+.su-det .ok{color:var(--good);display:inline-flex;align-items:center;gap:4px;font-weight:500}
+.su-det .lock{color:var(--warn);display:inline-flex;align-items:center;gap:4px;font-weight:500}
+.su-field{position:relative;display:grid;gap:5px;font-size:12.5px;color:var(--muted)}
+.su-field .in{display:flex;align-items:center;gap:8px;border:1px solid var(--field-line);border-radius:10px;background:var(--bg);padding:0 10px;transition:border-color .15s}
+.su-field .in:focus-within{border-color:var(--accent)}
+.su-field .in.bad{border-color:var(--bad)}
+.su-field .in select,.su-field .in input{flex:1;min-width:0;border:0!important;background:transparent!important;outline:0;padding:9px 0;font:13.5px var(--body);color:var(--ink)}
+.su-field .in select option{background:var(--surface);color:var(--ink)}
+.su-field .eye{appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;padding:4px;display:grid}
+.su-field .eye:hover{color:var(--ink)}
+.su-field .unlock{margin-right:-4px;padding:4px 10px}
+.pw-msg{font-size:12px;min-height:1em}
+.pw-msg.bad{color:var(--bad)} .pw-msg.ok{color:var(--good)} .pw-msg.busy{color:var(--muted)}
+.su-row.unlocked{border-color:var(--good)}
+.su-msg{font-size:13px;color:var(--muted)}
+.su-msg b{color:var(--ink)}
+.su-acts{display:flex;gap:8px;flex-wrap:wrap}
+#setupDlg .dlg-head{background:linear-gradient(135deg,var(--accent-soft),transparent 70%)}
 @media (max-width:900px){.setup{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:22px;display:grid;gap:16px;align-content:start;box-shadow:var(--shadow)}
 .panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -143,7 +214,7 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 
 /* ===== stage 3: ตัดยอด Statement (component styles from the cut tool, scoped) ===== */
 #cut{--c-paper:var(--surface-2);--c-surface:var(--surface-2);--c-rule:var(--line);--c-neg:var(--bad);--c-ok:var(--good);--c-net:var(--good-soft);
-  --hl1:#D4B24C;--hl2:#D08A66;--hl3:#6FA0CF;--hl4:#A88BD0;--hl-ink:var(--ink);--accent-ink:var(--accent-ink);font-family:var(--body)}
+  --hl0:#4FB89A;--hl1:#D4B24C;--hl2:#D08A66;--hl3:#6FA0CF;--hl4:#A88BD0;--hl-ink:var(--ink);--accent-ink:var(--accent-ink);font-family:var(--body)}
 #cut h2{font-size:17px}
 #cut .cstep{margin-top:26px}
 #cut .cstep > p.sub{color:var(--muted);margin:0 0 14px 2.1em;max-width:64ch}
@@ -158,12 +229,14 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
   background: linear-gradient(transparent 38%, var(--hl) 38%, var(--hl) 92%, transparent 92%); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #cut .cmark { color: var(--ink); background: none; text-decoration: underline; text-decoration-color: var(--hl); text-decoration-thickness: .22em; text-underline-offset: .42em; text-decoration-skip-ink: none; } }
 :root[data-theme="dark"] #cut .cmark { color: var(--ink); background: none; text-decoration: underline; text-decoration-color: var(--hl); text-decoration-thickness: .22em; text-underline-offset: .42em; text-decoration-skip-ink: none; }
-#cut .o1 { --hl: var(--hl1); } #cut .o2 { --hl: var(--hl2); } #cut .o3 { --hl: var(--hl3); } #cut .o4 { --hl: var(--hl4); } #cut .ox { --hl: #dcdcdc; }
+#cut .o0 { --hl: var(--hl0); } #cut .o1 { --hl: var(--hl1); } #cut .o2 { --hl: var(--hl2); } #cut .o3 { --hl: var(--hl3); } #cut .o4 { --hl: var(--hl4); } #cut .ox { --hl: #dcdcdc; }
 @media (min-width: 720px) { #cut .opt.ox { grid-column: 1 / -1; } #cut .ox .row2 { gap: 20px; } }
 #cut .exnote { margin: 10px 2px 0; font-size: .92rem; color: var(--muted); }
 #cut .opt p { margin: 0 0 12px; color: var(--muted); font-size: .95rem; }
 #cut .opt .auto { display: inline-block; font-size: .9rem; font-weight: 600; color: var(--c-ok); }
 #cut label.f { display: block; font-size: .9rem; font-weight: 500; margin: 0 0 4px; }
+#cut td.lft { text-align: left; white-space: normal; min-width: 160px; }
+#cut select#zeros, #cut select#xferDays { font: inherit; color: var(--ink); background: var(--bg); border: 1.5px solid var(--field-line); border-radius: 8px; padding: 9px 12px; }
 #cut textarea, #cut input[type=number] { width: 100%; font: inherit; color: var(--ink); background: var(--c-surface); border: 1.5px solid var(--c-rule); border-radius: 8px; padding: 9px 12px; }
 #cut textarea { min-height: 132px; resize: vertical; line-height: 1.5; }
 #cut textarea:focus, #cut input[type=number]:focus { outline: none; border-color: var(--accent); }
@@ -324,6 +397,23 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 #cut .rank-table tr.mf-both td.pname .nm::after{content:" ↺";color:var(--warn)}
 #cut .rank-table td.pname{white-space:normal}
 /* stage 3 popup */
+#setupDlg{width:min(760px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);padding:0;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);color:var(--ink);box-shadow:0 24px 60px rgba(0,0,0,.4)}
+#setupDlg[open]{display:flex;flex-direction:column}
+#setupDlg::backdrop{background:rgba(6,12,10,.55)}
+#setupDlg .dlg-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:16px 20px 12px;border-bottom:1px solid var(--line)}
+#setupDlg .dlg-kicker{font-size:12px;letter-spacing:.04em;color:var(--accent);font-weight:600}
+#setupDlg h3{font-size:19px;margin:2px 0}
+#setupDlg .dlg-body{flex:1;min-height:0;overflow:auto;padding:16px 20px;display:grid;gap:10px}
+#setupDlg .dlg-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line)}
+.su-row{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface-2);display:grid;gap:8px}
+.su-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.su-name{font-weight:600;word-break:break-all}
+.su-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:4px}
+.su-fields.one{grid-template-columns:minmax(0,1fr)}
+@media (max-width:600px){.su-fields{grid-template-columns:minmax(0,1fr)}}
+.su-fields label{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+.su-fields select,.su-fields input{width:100%;background:var(--bg)}
+.su-fields input.bad{border-color:var(--bad)}
 #cutDlg{width:min(1200px,calc(100vw - 32px));max-width:none;max-height:calc(100vh - 48px);padding:0;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);color:var(--ink);box-shadow:0 24px 60px rgba(0,0,0,.4)}
 #cutDlg[open]{display:flex;flex-direction:column}
 #cutDlg::backdrop{background:rgba(6,12,10,.55)}
@@ -365,38 +455,32 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
       </div>
     </div>
     <div class="top-actions">
-    <button class="btn theme-btn" id="themeBtn" type="button" aria-label="สลับโหมดกลางวัน/กลางคืน">
-      <svg class="ic ic-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-      <svg class="ic ic-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span id="themeLbl">กลางคืน</span>
-    </button>
-    <button class="btn" id="resetAll" type="button">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      ล้างค่าทั้งหมด
+    <button class="btn reset-btn" id="resetAll" type="button" hidden title="ลบไฟล์ที่แนบและค่าที่ตั้งทั้งหมด แล้วเริ่มใหม่">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="resetLbl">ล้างไฟล์ทั้งหมด · เริ่มใหม่</span>
     </button>
     </div>
   </header>
-  <div class="stage-title" id="stage1"><h2>แปลง PDF เป็น Excel</h2></div>
-  <section class="setup">
-    <div class="panel">
-      <div class="panel-head">
-        <h2>เลือกธนาคาร</h2>
-        <span class="muted small">ไม่แน่ใจ ให้ใช้ Auto</span>
-      </div>
-      <div class="banks" id="banks" role="group" aria-label="ธนาคาร"></div>
-      <div class="bank-note" id="bankNote"></div>
+  <section class="intro" aria-labelledby="introH">
+    <div class="intro-text">
+      <h2 id="introH">วาง Statement ได้หลายบัญชี เพื่อตรวจสอบยอดโอนระหว่างกัน</h2>
+      <p>ระบบจับคู่ยอดที่โอนหากันเองระหว่างบัญชีของเรา ไม่ให้นับเป็นยอดฝากซ้ำ แล้วสรุปยอดฝากสุทธิแยกตามบัญชี</p>
     </div>
+  </section>
 
-    <div class="panel">
+  <section class="setup setup-one">
+    <div class="panel upload">
       <div class="panel-head">
-        <h2>นำเข้าไฟล์</h2>
-        <span class="muted small">.pdf .xlsx .xls .csv · ครั้งละ 1 ไฟล์</span>
+        <h2>แนบ Statement</h2>
+        <span class="muted small" id="fileCount">ยังไม่มีไฟล์</span>
       </div>
-      <div class="drop" id="drop" tabindex="0" role="button" aria-label="เลือกไฟล์ Statement">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="color:var(--accent)"/></svg>
-        <strong>คลิกหรือลากไฟล์มาวางที่นี่</strong>
-        <span class="muted small">แนะนำ e-Statement PDF ที่ดาวน์โหลดจากธนาคาร (ไม่ใช่ไฟล์สแกน)</span>
-        <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv" hidden>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="เลือกไฟล์ Statement (เลือกได้หลายไฟล์)">
+        <span class="drop-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 15V4m0 0-4 4m4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <strong>ลากไฟล์มาวาง หรือ <u>เลือกไฟล์</u></strong>
+        <span class="drop-sub">เลือกได้หลายไฟล์พร้อมกัน — แนบทุกบัญชีที่ต้องการตรวจยอดโอนระหว่างกัน</span>
+        <span class="fmt-row"><span class="fmt pdf">PDF</span><span class="fmt xls">XLSX</span><span class="fmt xls">XLS</span><span class="fmt csv">CSV</span></span>
+        <span class="drop-note">แนะนำ e-Statement PDF จากแอปธนาคาร (ไม่ใช่ไฟล์สแกน) · เลือกธนาคารและใส่รหัสผ่านได้หลังแนบไฟล์</span>
+        <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv" multiple hidden>
       </div>
       <div class="files" id="files"></div>
     </div>
@@ -409,6 +493,19 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
     </div>
     <button class="btn primary" id="openCutBtn" type="button">ไปที่ตัดยอด Statement</button>
   </section>
+
+  <dialog id="setupDlg" aria-labelledby="setupTitle">
+    <div class="dlg-head">
+      <div>
+        <div class="dlg-kicker">ขั้นที่ 2 จาก 3 · ตั้งค่าไฟล์ที่แนบ</div>
+        <h3 id="setupTitle">เลือกธนาคารและใส่รหัสผ่าน</h3>
+        <div class="muted small">ระบบตรวจธนาคารจากเนื้อหาไฟล์ให้แล้ว เปลี่ยนได้ถ้าไม่ถูก · ไฟล์ที่ล็อกไว้ให้ใส่รหัสผ่าน</div>
+      </div>
+      <button class="x dlg-close" id="setupClose" type="button" aria-label="ปิด">×</button>
+    </div>
+    <div class="dlg-body" id="setupBody"></div>
+    <div class="dlg-foot"><span class="su-msg" id="setupMsg"></span><span class="su-acts"><button class="btn" id="setupAdd" type="button">+ แนบไฟล์เพิ่ม</button><button class="btn primary" id="setupOk" type="button">ยืนยันและตรวจสอบ <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span></div>
+  </dialog>
 
   <dialog id="reviewDlg" aria-labelledby="reviewTitle">
     <div class="dlg-head">
@@ -450,6 +547,19 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
     <h2 id="s2">ตั้งค่าการตัดยอด</h2>
     <p class="sub">ค่าที่ตั้งตรงนี้จะใส่ไว้ในไฟล์ให้แล้ว และแก้ไขต่อใน Excel ได้ภายหลัง</p>
     <div class="opts">
+      <div class="opt o0" id="xferCard">
+        <h3><span class="cmark">ตัดยอดโอนระหว่างบัญชีตัวเอง</span></h3>
+        <p>จับคู่ถอนจากบัญชีหนึ่งกับฝากเข้าอีกบัญชีของเรา ยอดเท่ากัน — เป็นเงินโอนภายใน ไม่ใช่รายได้ ต้องนำเข้าตั้งแต่ 2 บัญชี</p>
+        <label class="togg" for="xfer"><input type="checkbox" id="xfer" checked><span>ตัดยอดโอนระหว่างบัญชี</span></label>
+        <label class="f" for="xferDays" style="margin-top:8px">วันที่ถอนกับวันที่ฝากห่างกันได้ไม่เกิน</label>
+        <select id="xferDays" style="width:100%">
+          <option value="0" selected>วันเดียวกัน</option>
+          <option value="1">1 วัน</option>
+          <option value="2">2 วัน</option>
+          <option value="3">3 วัน</option>
+        </select>
+        <div class="count" id="xferInfo"></div>
+      </div>
       <div class="opt o1">
         <h3><span class="cmark">ตัดยอดถอน/ฝากที่ซ้ำกัน</span></h3>
         <p>จับคู่ถอน 1 รายการกับฝาก 1 รายการที่ยอดเท่ากันในวันเดียวกัน</p>
@@ -469,6 +579,17 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
           <div><label class="f" for="gt">มากกว่า (บาท)</label><input id="gt" type="number" min="0" step="any" inputmode="decimal"></div>
           <div><label class="f" for="lt">น้อยกว่า (บาท)</label><input id="lt" type="number" min="0" step="any" inputmode="decimal"></div>
         </div>
+        <label class="f" for="zeros" style="margin-top:12px">ยอดฝากที่ลงท้ายด้วย 0 (เลือกจำนวนหลัก)</label>
+        <select id="zeros" style="width:100%">
+          <option value="">ไม่ตัด</option>
+          <option value="1">1 หลัก — ลงท้าย 0 (เช่น 50, 1,230)</option>
+          <option value="2">2 หลัก — ลงท้าย 00 (เช่น 500, 1,200)</option>
+          <option value="3">3 หลัก — ลงท้าย 000 (เช่น 5,000, 12,000)</option>
+          <option value="4">4 หลัก — ลงท้าย 0000 (เช่น 10,000, 50,000)</option>
+          <option value="5">5 หลัก — ลงท้าย 00000 (เช่น 100,000)</option>
+          <option value="6">6 หลัก — ลงท้าย 000000 (เช่น 1,000,000)</option>
+        </select>
+        <div class="count">นับเฉพาะยอดเต็มบาท (ไม่มีสตางค์) เช่น 3 หลัก ตัด 5,000.00 แต่ไม่ตัด 5,000.50</div>
       </div>
       <div class="opt o4">
         <h3><span class="cmark">ตัดยอดฝากตามประเภท/ช่องทาง</span></h3>
@@ -510,10 +631,31 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
       </table>
     </div>
     <p class="exnote" id="exnote"></p>
+    <div id="xferBox" hidden>
+      <h3 class="subhead">คู่โอนระหว่างบัญชีตัวเอง</h3>
+      <p class="exnote" id="xferSum" style="margin-bottom:10px"></p>
+      <div class="scroll" style="max-height:380px;overflow:auto">
+        <table>
+          <thead><tr><th>คู่</th><th class="lft">วันที่ถอน</th><th class="lft">ถอนจากบัญชี</th><th class="lft">วันที่ฝาก</th><th class="lft">ฝากเข้าบัญชี</th><th>ยอดเงิน (บาท)</th><th>ห่าง (วัน)</th></tr></thead>
+          <tbody id="xferBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="acctBox" hidden>
+      <h3 class="subhead">ยอดฝากแยกตามบัญชี</h3>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>บัญชี</th><th>ยอดฝากทั้งหมด</th><th>หัก<br>โอนระหว่างบัญชี</th><th>หัก<br>ซ้ำ ถอน/ฝาก</th><th>หัก<br>ตามชื่อ</th><th>หัก<br>ตามยอดเงิน</th><th>หัก<br>ประเภท</th><th>ยอดฝากสุทธิ</th></tr></thead>
+          <tbody id="acctBody"></tbody>
+          <tfoot id="acctFoot"></tfoot>
+        </table>
+      </div>
+    </div>
     <div class="gap"></div>
+    <div class="flow-ctl" id="monAcctBar" hidden><label class="flow-f">ยอดฝากรายเดือนของ <select id="monAcct"><option value="">ทุกบัญชีรวมกัน</option></select></label></div>
     <div class="scroll">
       <table>
-        <thead><tr><th>เดือน</th><th>ยอดฝากทั้งหมด</th><th>หัก<br>ซ้ำ ถอน/ฝาก</th><th>หัก<br>ตามชื่อ</th><th>หัก<br>ตามยอดเงิน</th><th>หัก<br>ประเภท</th><th>ยอดฝากสุทธิ</th></tr></thead>
+        <thead><tr><th>เดือน</th><th>ยอดฝากทั้งหมด</th><th>หัก<br>โอนระหว่างบัญชี</th><th>หัก<br>ซ้ำ ถอน/ฝาก</th><th>หัก<br>ตามชื่อ</th><th>หัก<br>ตามยอดเงิน</th><th>หัก<br>ประเภท</th><th>ยอดฝากสุทธิ</th></tr></thead>
         <tbody id="monBody"></tbody>
         <tfoot id="monFoot"></tfoot>
       </table>
@@ -707,6 +849,7 @@ function inferType(text, wd, dep){
   if(!t) t = dep>0 ? "รับเงิน" : wd>0 ? "จ่ายเงิน" : "";
   return t;
 }
+const ACCT_RE = /(Account\s*(?:Number|No\.?)|เลขที่บัญชี|เลขบัญชี)\s*:?\s*([0-9][0-9xX*\-]{5,}[0-9xX*])/i;
 const OPEN_RE = /ยอดยกมา|ยอดคงเหลือยกมา|ยอดเงินคงเหลือยกมา|ยอดคงเหลือต้นงวด|beginning balance|opening balance|balance brought forward|brought forward|\bB\/F\b|previous balance/i;
 const SKIP_RE = /ยอดยกไป|carried forward|\bC\/F\b|^รวม|ยอดรวม|\btotal\b|สรุปรายการ|closing balance|ending balance/i;
 const NOISE_RE = /auto-generated|signature is not required|ไม่ต้องลงนาม|หน้า(ที่)?\s*\d+\s*(\/|จาก)|page\s*\d+\s*(of|\/)|เอกสารนี้|ออกโดยระบบ|www\.|call center|โทร\.?\s*\d/i;
@@ -867,9 +1010,13 @@ function extractRaw(pages){
   const isBoiler = l => { if(pages.length<2) return false; const s=seen[boilerKey(l)]; return s && s.size>=2 && s.size>=pages.length*0.6; };
 
   const raws=[]; let opening=null, openingDate=null; let header=null; let lastYear=null, lastMonth=null, topText=null, curDate=null;
+  let curAcct=null, newAcct=false;   // ไฟล์เดียวมีหลายบัญชี (เช่น รายงาน Cash Management ของกรุงเทพ) → ตรวจยอดคงเหลือแยกทีละบัญชี
   pages.forEach((p,pi)=>{
-    let last=null, hdrLine=null;
+    let last=null, hdrLine=null, pageHdr=false;
     for(const L of p.lines){
+      if(!pageHdr && !(L.tokens[0] && parseDateAt(L.tokens[0].t,{allowNoYear:true}))){   // ส่วนหัวบัญชีก่อนตาราง (ไม่ใช่ในรายละเอียดรายการ)
+        const am = L.text.match(ACCT_RE);
+        if(am){ const no = am[2].replace(/[\s\-]/g,""); if(no!==curAcct){ if(curAcct!=null) newAcct=true; curAcct=no; last=null; } } }
       // second line of a two-line header ("ถอนเงิน /" over "ฝากเงิน")
       if(hdrLine && header && (hdrLine.y - L.y) <= Math.max(hdrLine.h,L.h)*1.7 && !L.tokens.some(t=>parseAmount(t.t)) && !parseDateAt(L.tokens[0].t,{allowNoYear:true})){
         for(const c of L.cells){
@@ -891,7 +1038,7 @@ function extractRaw(pages){
         header = roles.slice().sort((a,b)=>a.x0-b.x0);
         if(!header.some(h=>h.role==="desc")){ const t=header.find(h=>h.role==="type"); if(t) t.role="desc"; }
         if(pi===0 && topText==null) topText = p.lines.slice(0, p.lines.indexOf(L)).map(l=>l.text).join("\n");
-        last=null; hdrLine={y:L.y,h:L.h}; continue;
+        last=null; hdrLine={y:L.y,h:L.h}; pageHdr=true; continue;
       }
       const looksTxn = L.tokens.some(t=>parseAmount(t.t)) && /\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?|\d{1,2}\s*[\u0E00-\u0E7FA-Za-z.]{2,12}\s*\d{2,4}/.test(L.text);
       const contCandidate = last && !looksTxn && (last.y - L.y) <= last.h*2.1 && !L.tokens.some(t=>parseAmount(t.t));
@@ -967,14 +1114,19 @@ function extractRaw(pages){
         const used = new Set(); for(let i=dIdx;i<dIdx+dSpan;i++) used.add(i); if(tIdx>=0) used.add(tIdx);
         amounts.forEach(a=>used.add(a.i));
         const words = toks.map((t,i)=>({...t,i})).filter(t=>!used.has(t.i) && !/^(CR|DR)$/i.test(t.t) && t.t!=="-");
-        const r = {date,time,amounts,words,header,page:pi,text:L.text,h:L.h};
+        const r = {date,time,amounts,words,header,page:pi,text:L.text,h:L.h,acct:curAcct,segStart:newAcct && raws.length>0};
+        newAcct=false;
         raws.push(r); last={r, y:L.y, h:L.h};
         continue;
       }
       if(SKIP_RE.test(L.text)){ last=null; continue; }
       // continuation line
       if(last && !amounts.length && (last.y - L.y) <= last.h*2.1 && !date){
-        last.r.words.push(...L.tokens.map(t=>({...t,i:-1,cont:true})));
+        let ct = L.tokens;
+        if(!last.r.time && ct.length && TIME_RE.test(ct[0].t) && (!header || ["date","time"].includes(nearestRole(ct[0].cx, header)) || header.some(h=>h.role==="desc" && ct[0].x1 <= h.x0))){   // เวลาพิมพ์บรรทัดที่ 2 ใต้วันที่
+          const m = ct[0].t.match(TIME_RE); last.r.time = pad(+m[1])+":"+m[2]; ct = ct.slice(1);
+        }
+        last.r.words.push(...ct.map(t=>({...t,i:-1,cont:true})));
         last.y = L.y; last.h = L.h;
         continue;
       }
@@ -999,7 +1151,9 @@ function spanRole(x0, header){
 function buildRows(raws, opening, strategy){
   const rows=[];
   let prev = opening;
+  const conv={negWd:0,posWd:0,negDep:0,posDep:0};   // เรียนรู้จากไฟล์: ยอดถอนพิมพ์ติดลบ ยอดฝากไม่มีเครื่องหมาย
   for(const r of raws){
+    if(r.segStart) prev = null;                       // บัญชีใหม่ในไฟล์เดียวกัน: เริ่มนับยอดคงเหลือใหม่
     let wd=0, dep=0, bal=null, amt=null, amtSign=null, explicit=false;
     const A = r.amounts;
     const useHeader = strategy==="header" && r.header && r.header.some(h=>["wd","dep","bal","amt"].includes(h.role));
@@ -1018,9 +1172,10 @@ function buildRows(raws, opening, strategy){
     }
     const text = r.words.map(w=>w.t).join(" ");
     if(amt!=null){
-      if(prev!=null && bal!=null && prev+amt===bal){ dep=amt; }
-      else if(prev!=null && bal!=null && prev-amt===bal){ wd=amt; }
+      if(prev!=null && bal!=null && prev+amt===bal){ dep=amt; conv[amtSign==="-"?"negDep":"posDep"]++; }
+      else if(prev!=null && bal!=null && prev-amt===bal){ wd=amt; conv[amtSign==="-"?"negWd":"posWd"]++; }
       else if(amtSign){ if(amtSign==="-") wd=amt; else dep=amt; }
+      else if(conv.negWd>=3 && conv.posDep>=3 && !conv.posWd && !conv.negDep) dep=amt;   // ไฟล์นี้ยอดถอนติดลบเสมอ → ไม่มีเครื่องหมาย = ฝาก
       else if(DEP_HINT.test(text)) dep=amt; else wd=amt;
     } else if(explicit && prev!=null && bal!=null && prev-wd+dep!==bal && prev-dep+wd===bal){ const t=wd; wd=dep; dep=t; }
     // text columns
@@ -1028,6 +1183,10 @@ function buildRows(raws, opening, strategy){
     let pw=null, pr=null;
     for(const w of r.words){
       let role = r.header ? spanRole(w.x0, r.header) : "desc";
+      if(r.header && ["wd","dep","bal","amt"].includes(role) && !parseAmount(w.t)){   // ข้อความเริ่มก่อนหัวคอลัมน์ถัดไปเล็กน้อย (เช่น "Internet" ใต้ Channel ของกรุงเทพ)
+        const nx = r.header.find(h=>h.x0 > w.x0 && h.x0 - w.x0 <= 6 && ["channel","branch","desc","type","ref"].includes(h.role));
+        if(nx) role = nx.role;
+      }
       // a description that overflows into the next column keeps its words (normal word spacing)
       if(pr==="desc" && pw && !w.cont && role!=="desc" && w.x0-pw.x1 < (r.h||8)*0.6 && w.x0 > pw.x0) role="desc";
       pw=w; pr=role;
@@ -1057,7 +1216,7 @@ function buildRows(raws, opening, strategy){
     if(!ref) ref = refFromDesc(description);
     let C = typeWithChannel(type, channel);
     if(!C) C = inferType(description+" "+r.text, wd, dep);
-    rows.push({date:r.date, time:r.time, type:C, item:(type||"").trim(), channel:(channel||"").trim(), ref, desc:description, wd, dep, bal, raw:A.map(a=>({v:a.v,sign:a.sign}))});
+    rows.push({date:r.date, time:r.time, type:C, item:(type||"").trim(), channel:(channel||"").trim(), ref, desc:description, wd, dep, bal, raw:A.map(a=>({v:a.v,sign:a.sign})), acct:r.acct||null, segStart:!!r.segStart});
     if(bal!=null) prev = bal; else if(prev!=null) prev = prev - wd + dep;
   }
   return rows;
@@ -1067,6 +1226,7 @@ function verify(rows){
   let prev=null, pass=0, fail=0, checked=0, fixed=0;
   for(const row of rows){
     row.warn=""; row.ok=true; if(row.fix) fixed++;
+    if(row.segStart) prev=null;
     if(row.opening){ prev=row.bal; continue; }
     if(row.dayOk){ prev=row.groupEnd; continue; }   // day reconciles in the bank's posting order
     if(row.deferred){ row.warn = "ธนาคารบันทึกยอดนี้ตอนสิ้นเดือน (พิมพ์ตามวันที่ได้รับ) — ไม่นับในลำดับยอดคงเหลือ"; continue; }
@@ -1096,6 +1256,7 @@ function prevBalAt(rows, idx){
   let prev=null;
   for(let k=0;k<idx;k++){
     const row=rows[k];
+    if(row.segStart) prev=null;
     if(row.opening){ prev=row.bal; continue; }
     if(row.dayOk){ prev=row.groupEnd; continue; }
     if(row.bal==null){ if(prev!=null) prev = prev-(row.wd||0)+(row.dep||0); continue; }
@@ -1123,12 +1284,14 @@ function repairRows(rows){
   for(let i=start;i<rows.length;i++){
     const r=rows[i];
     if(r.desc){ const m=r.desc.match(FOOTER_CUT); if(m && m.index>0){ r.desc=r.desc.slice(0,m.index).trim(); note(r,"ตัดข้อความท้ายเอกสารออกจากรายละเอียด"); n++; } }
+    if(r.segStart && r.opening) continue;
     if(r.ref && !/\d/.test(r.ref) && /^[A-Za-z]+$/.test(r.ref)){ if(!(r.desc||"").includes(r.ref)) r.desc=((r.desc||"")+" "+r.ref).trim(); note(r,`“${r.ref}” ไม่ใช่เลขที่อ้างอิง`); r.ref=""; n++; }
     if(!r.date && i>start && rows[i-1].date){ r.date={...rows[i-1].date}; note(r,"ใส่วันที่ตามรายการก่อนหน้า"); n++; }
   }
   let prev = start ? rows[0].bal : null;
   for(let i=start;i<rows.length;i++){
     const r=rows[i]; r.wd=r.wd||0; r.dep=r.dep||0;
+    if(r.segStart) prev=null;
     if(r.bal==null){ if(prev!=null) prev=prev-r.wd+r.dep; continue; }
     if(prev==null || prev-r.wd+r.dep===r.bal){ prev=r.bal; continue; }
     const next=rows[i+1];
@@ -1151,7 +1314,7 @@ function repairRows(rows){
     // 3) same-day rows printed in a different order from how the bank posted them (e.g. interest dated 02:11
     //    but applied at end of day). Keep the bank's order; accept the day if it reconciles in posting order.
     if(!done && r.date){
-      let e=i; while(e+1<rows.length && rows[e+1].date && dkey(rows[e+1].date)===dkey(r.date)) e++;
+      let e=i; while(e+1<rows.length && rows[e+1].date && !rows[e+1].segStart && dkey(rows[e+1].date)===dkey(r.date)) e++;
       const pool=rows.slice(i,e+1).filter(x=>x.bal!=null); let p2=prev, okAll=pool.length===e-i+1;
       while(okAll && pool.length){ const k=pool.findIndex(x=>p2-(x.wd||0)+(x.dep||0)===x.bal); if(k<0){ okAll=false; break; } p2=pool[k].bal; pool.splice(k,1); }
       if(okAll && e>i){
@@ -1187,12 +1350,13 @@ function fixDeferredPostings(rows){
   let prev = start ? rows[0].bal : null, n = 0;
   const segs = []; let seg = [], key = null;
   for(let i=start;i<rows.length;i++){
-    const r = rows[i], k = r.date ? r.date.y*12 + r.date.m : key;
-    if(k!==key){ if(seg.length) segs.push(seg); seg=[]; key=k; }
+    const r = rows[i], k = (r.acct||"")+"|"+(r.date ? r.date.y*12 + r.date.m : String(key).split("|")[1]);
+    if(k!==key || r.segStart){ if(seg.length) segs.push(seg); seg=[]; key=k; }
     seg.push(i);
   }
   if(seg.length) segs.push(seg);
   for(const s of segs){
+    if(rows[s[0]].segStart) prev=null;
     const cands=[]; let p=prev, ok=true;
     for(const i of s){
       const r=rows[i];
@@ -1252,7 +1416,9 @@ function parsePdfPages(pages, bankChoice){
     const bad = rows.filter(r=>!r.ok).length;
     if(!best || bad<best.bad || (bad===best.bad && (v.fixed<best.v.fixed || (v.fixed===best.v.fixed && v.pass>best.v.pass)))) best={rows,v,strat,bad};
   }
-  return {rows:best.rows, bankCode:code, bankName, strategy:best.strat, stats:best.v};
+  const accts = [...new Set(best.rows.map(r=>r.acct).filter(Boolean))];
+  if(best.rows[0] && best.rows[0].opening){ const fr = best.rows.find(r=>!r.opening && r.acct); if(fr) best.rows[0].acct = fr.acct; }
+  return {rows:best.rows, bankCode:code, bankName, strategy:best.strat, stats:best.v, accounts:accts};
 }
 
 /* ---------------- Excel / CSV input ---------------- */
@@ -1286,17 +1452,28 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
   const {headerRow, map} = mapping;
   const text = grid.slice(0,20).map(r=>(r||[]).join(" ")).join("\n") + " " + fileName;
   const code = bankChoice!=="AUTO" ? bankChoice : (detectBank(text) || bankFromName(fileName));
+  const acm = grid.slice(0, Math.max(0, headerRow)).map(r=>(r||[]).filter(v=>v!=null).join(" ")).join("\n").match(ACCT_RE);
+  const acct = acm ? acm[2].replace(/[\s\-]/g,"") : null;
   const bankName = code ? BANK_BY[code].name : "ไม่ทราบธนาคาร";
   if(headerRow<0 || map.date==null) return {rows:[], bankCode:code, bankName, error:"หาแถวหัวตารางไม่พบ — กำหนดคอลัมน์เองด้านล่าง"};
   let md=false, dm=false;
   for(let r=headerRow+1;r<grid.length;r++){ const v=grid[r]&&grid[r][map.date]; if(typeof v==="string"){ const m=v.match(/^(\d{1,2})[\/\-.](\d{1,2})/); if(m){ if(+m[1]>12) dm=true; if(+m[2]>12) md=true; } } }
   const ctx={md:md&&!dm};
-  const raws=[]; let opening=null;
+  const raws=[]; let opening=null, openingDate=null;
   const g = (row,k)=> map[k]!=null ? row[map[k]] : null;
+  // คอลัมน์ "ธนาคาร" ต่อแถว (ไฟล์ที่ส่งออกจากเว็บนี้ เมื่อมีหลายบัญชีจะระบุเลขบัญชีไว้ เช่น "ธนาคารกรุงเทพ (BBL) · บัญชี 9820xxx389")
+  const bankCol = (grid[headerRow]||[]).findIndex(v=>v!=null && String(v).trim()==="ธนาคาร");
+  const bankTxt = row => bankCol>=0 && row[bankCol]!=null ? String(row[bankCol]).trim() : "";
+  let lastBank = null;
   for(let r=headerRow+1;r<grid.length;r++){
     const row = grid[r]; if(!row) continue;
     const joined = row.filter(v=>v!=null).join(" ");
-    if(OPEN_RE.test(joined)){ const b=parseLooseAmount(g(row,"bal")); if(b && opening==null && !raws.length) opening=signedV(b); continue; }
+    if(OPEN_RE.test(joined)){
+      const b=parseLooseAmount(g(row,"bal")), bt=bankTxt(row), od=excelDate(g(row,"date"), ctx);
+      if(b && opening==null && !raws.length){ opening=signedV(b); if(od) openingDate={y:od.y,m:od.m,d:od.d}; lastBank = bt || lastBank; }
+      else if(b && raws.length){ raws.push({open:true, bal:signedV(b), date: od?{y:od.y,m:od.m,d:od.d}:null, bankLabel:bt, segStart:true}); lastBank = bt || lastBank; }
+      continue;
+    }
     const d = excelDate(g(row,"date"), ctx);
     if(!d){ if(!raws.length && opening==null){ const b=parseLooseAmount(g(row,"bal")); const w=parseLooseAmount(g(row,"wd")), dp=parseLooseAmount(g(row,"dep")); if(b && !(w&&w.v) && !(dp&&dp.v)) opening=signedV(b); } continue; }
     if(SKIP_RE.test(joined)) continue;
@@ -1307,11 +1484,15 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
     else if(tv!=null){ const sv=String(tv).trim(); const m=sv.match(/^([01]?\d|2[0-3])[:.]([0-5]\d)/) || sv.match(/^([01]\d|2[0-3])([0-5]\d)(?:[0-5]\d)?$/); if(m) time=pad(+m[1])+":"+m[2]; }
     if(!time) time = d.time;
     const wdA=parseLooseAmount(g(row,"wd")), depA=parseLooseAmount(g(row,"dep")), amtA=parseLooseAmount(g(row,"amt")), balA=parseLooseAmount(g(row,"bal"));
-    raws.push({date:{y:d.y,m:d.m,d:d.d}, time, type:g(row,"type"), ref:g(row,"ref"), desc:g(row,"desc"), wdA, depA, amtA, balA});
+    const bt = bankTxt(row), seg = !!(bt && lastBank!=null && bt!==lastBank && raws.length && !raws[raws.length-1].open);
+    if(bt) lastBank = bt;
+    raws.push({date:{y:d.y,m:d.m,d:d.d}, time, type:g(row,"type"), ref:g(row,"ref"), desc:g(row,"desc"), wdA, depA, amtA, balA, bankLabel:bt, segStart:seg});
   }
   if(!raws.length) return {rows:[], bankCode:code, bankName, error:"ไม่พบรายการใต้หัวตาราง — ตรวจการจับคู่คอลัมน์"};
   let prev=opening; const rows=[];
   for(const r of raws){
+    if(r.open){ rows.push({opening:true, date:r.date, time:"", type:"", ref:"", desc:"", wd:0, dep:0, bal:r.bal, derived:false, bankLabel:r.bankLabel, segStart:true}); prev=r.bal; continue; }
+    if(r.segStart) prev=null;
     let wd=r.wdA?r.wdA.v:0, dep=r.depA?r.depA.v:0; const bal=r.balA?signedV(r.balA):null;
     if(r.amtA && !wd && !dep){
       const a=r.amtA.v;
@@ -1322,13 +1503,20 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
     const desc = r.desc==null?"":String(r.desc).replace(/\s+/g," ").trim();
     const type = r.type!=null && String(r.type).trim() ? String(r.type).trim() : inferType(desc, wd, dep);
     if(r.ref==null || !String(r.ref).trim()) r.ref = refFromDesc(desc);
-    rows.push({date:r.date, time:r.time, type, ref: r.ref==null?"":String(r.ref).trim(), desc, wd, dep, bal, raw:[r.wdA,r.depA,r.amtA,r.balA].filter(Boolean).map(a=>({v:a.v,sign:a.sign}))});
+    rows.push({date:r.date, time:r.time, type, ref: r.ref==null?"":String(r.ref).trim(), desc, wd, dep, bal, raw:[r.wdA,r.depA,r.amtA,r.balA].filter(Boolean).map(a=>({v:a.v,sign:a.sign})), bankLabel:r.bankLabel, segStart:r.segStart});
     if(bal!=null) prev=bal; else if(prev!=null) prev=prev-wd+dep;
   }
-  const out = finalizeRows(rows, opening, bankName);
+  const out = finalizeRows(rows, opening, bankName, openingDate);
+  // แยกชื่อธนาคาร/เลขบัญชีจากคอลัมน์ธนาคาร (เมื่อไฟล์มีหลายบัญชี)
+  const labels = new Set(out.map(r=>r.bankLabel).filter(Boolean));
+  if(labels.size>1){
+    if(out[0] && out[0].opening && !out[0].bankLabel){ const nx=out.find(r=>r.bankLabel); if(nx) out[0].bankLabel=nx.bankLabel; }
+    out.forEach(r=>{ if(!r.bankLabel) return; const m=r.bankLabel.match(/^(.*?)\s+·\s+(?:บัญชี\s+)?(.+)$/); if(m){ r.bank=m[1].trim(); r.acct=m[2].trim(); } else r.bank=r.bankLabel; });
+  }
   const before = verify(out).fail; repairRows(out); fixDeferredPostings(out);
   const st = verify(out); st.initialFail = before;
-  return {rows:out, bankCode:code, bankName, strategy:"excel", stats:st};
+  const accounts = labels.size>1 ? [...new Set(out.map(r=>r.acct).filter(Boolean))] : null;
+  return {rows:out, bankCode:code, bankName, strategy:"excel", stats:st, acct, accounts};
 }
 
 /* ---------------- State ---------------- */
@@ -1336,13 +1524,14 @@ let files = [];
 let fid = 0;
 
 /* ---------------- Rendering ---------------- */
-function renderBanks(){
+function renderBanks(){ return; }
+function renderBanksOld(){
   $("banks").innerHTML = BANKS.map(b=>`<button type="button" class="bank" data-code="${b.code}" aria-pressed="${b.code===selectedBank}" title="${esc(b.name)}">
     <span class="chip" style="background:${b.color}${b.code==="BAY"?";color:#2a1c00":""}">${b.code==="AUTO"?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 10h16M6 10v7m4-7v7m4-7v7m4-7v7M3 20h18M12 3l9 5H3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>':esc(b.short)}</span>${esc(b.code==="AUTO"?"Auto":b.code)}</button>`).join("");
   const b = BANK_BY[selectedBank];
   $("bankNote").innerHTML = `<b>${esc(b.code==="AUTO"?"อัตโนมัติ / ทั่วไป":b.name)}</b><br><span class="muted">${esc(b.note || "ใช้ชื่อธนาคารนี้ในคอลัมน์ “ธนาคาร” และอ่านรายการด้วยตัวอ่านทั่วไปที่ตรวจยอดคงเหลือทุกบรรทัด")}</span>`;
 }
-$("banks").addEventListener("click", e=>{
+false && $("banks").addEventListener("click", e=>{
   const btn = e.target.closest(".bank"); if(!btn) return;
   selectedBank = btn.dataset.code;
   try{ localStorage.setItem("ll.bank", selectedBank); }catch(err){}
@@ -1359,26 +1548,40 @@ function fileStatusPill(f){
   if(bad) return `<span class="pill warn">${n} รายการ · ตรวจ ${bad}</span>`;
   return fx ? `<span class="pill info">${n} รายการ · แก้แล้ว ${fx}</span>` : `<span class="pill good">${n} รายการ · ยอดตรงทั้งหมด</span>`;
 }
+const ftypeOf = n => /\.pdf$/i.test(n) ? ["pdf","PDF"] : /\.csv$/i.test(n) ? ["csv","CSV"] : ["xls", /\.xls$/i.test(n) ? "XLS" : "XLSX"];
+function bankChip(code){
+  const b = code && BANK_BY[code]; if(!b || code==="AUTO") return "";
+  return `<span class="bchip"><i style="background:${b.color}">${esc(b.short)}</i>${esc(b.name.replace(/\s*\(.*\)$/,""))}</span>`;
+}
+const SVG_LOCK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2"/></svg>';
+const SVG_OK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5 10 17l9-10" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function renderFiles(){
+  const cnt = $("fileCount");
+  if(cnt) cnt.textContent = files.length ? `${files.length} / 12 ไฟล์` + (files.length>1 ? " · ตรวจโอนระหว่างบัญชีได้" : " · แนบบัญชีอื่นเพิ่มได้") : "ยังไม่มีไฟล์";
   $("files").innerHTML = files.map(f=>{
-    let extra="";
-    if(f.status==="needpw") extra = `<div class="field"><input type="password" id="pw-${f.id}" placeholder="${f.pwWrong?"รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง":"ไฟล์นี้มีรหัสผ่าน — ใส่รหัสเพื่อเปิด"}" autocomplete="off" style="flex:1;min-width:120px"><button class="btn sm" data-act="pw" data-id="${f.id}" type="button">เปิดไฟล์</button></div>`;
-    if(f.status==="error") extra = `<div class="small" style="color:var(--bad)">${esc(f.error)}</div>`;
-    if(f.status==="done" || (f.kind==="excel" && f.grid)){
-      const how = f.strategy==="header"?"อ่านตามหัวตาราง":f.strategy==="position"?"อ่านตามตำแหน่งตัวเลข":f.strategy==="excel"?"จับคู่คอลัมน์ Excel":"";
-      if(f.status==="done") extra += `<div class="small muted">${esc(f.bankName||"")}${how?" · "+how:""}${f.stats&&f.stats.checked?` · ตรวจยอดผ่าน ${f.stats.pass}/${f.stats.checked}`:""}${f.stats&&f.stats.initialFail?` · อ่านครั้งแรกไม่ผ่าน ${f.stats.initialFail} แก้อัตโนมัติ ${f.stats.fixed}`:""}${f.rows[0]&&f.rows[0].derived?" · ยอดยกมาคำนวณย้อนจากรายการแรก":""}</div>`;
-      if(f.kind==="excel" && f.grid){
-        const ncol = Math.max(...f.grid.slice(0,80).map(r=>r?r.length:0),0);
-        const hr = f.mapping.headerRow;
-        const hdr = hr>=0 ? (f.grid[hr]||[]) : [];
-        const opts = sel => `<option value="">—</option>`+Array.from({length:ncol},(_,c)=>`<option value="${c}"${sel===c?" selected":""}>${colName(c)}${hdr[c]!=null?": "+esc(String(hdr[c]).slice(0,24)):""}</option>`).join("");
-        extra += `<details${f.status==="error"?" open":""}><summary>กำหนดคอลัมน์เอง</summary><div class="mapgrid">
-          <label>แถวหัวตาราง<input type="text" inputmode="numeric" id="hr-${f.id}" value="${hr>=0?hr+1:""}" data-act="hr" data-id="${f.id}"></label>
-          ${MAP_FIELDS.map(([k,l])=>`<label>${l}<select id="map-${f.id}-${k}" data-act="map" data-id="${f.id}" data-k="${k}">${opts(f.mapping.map[k])}</select></label>`).join("")}
-        </div></details>`;
-      }
+    const [fc, fl] = ftypeOf(f.name);
+    let meta = "", extra = "";
+    if(f.status==="parsing") meta = "กำลังอ่านไฟล์…";
+    if(f.status==="needpw") meta = `<span class="lock" style="color:var(--warn);display:inline-flex;gap:4px;align-items:center">${SVG_LOCK}${f.pwWrong?"รหัสผ่านไม่ถูกต้อง":"ไฟล์ล็อกด้วยรหัสผ่าน"}</span>`;
+    if(f.status==="error") meta = `<span style="color:var(--bad)">${esc(f.error)}</span>`;
+    if(f.status==="done"){
+      const acct = f.accounts && f.accounts.length>1 ? `${f.accounts.length} บัญชีในไฟล์` : (f.accounts && f.accounts[0]) || f.acct ? `บัญชี ${esc((f.accounts && f.accounts[0]) || f.acct)}` : "";
+      meta = [f.cutFile ? `<span style="color:var(--accent);font-weight:600">ไฟล์ตัดยอดเดิม · ใช้ค่าที่ตั้งไว้ต่อ</span>` : "", bankChip(f.bankCode) || esc(f.bankName||""), acct, f.stats&&f.stats.checked?`ตรวจยอดผ่าน ${f.stats.pass.toLocaleString()}/${f.stats.checked.toLocaleString()}`:"",
+        f.stats&&f.stats.initialFail?`แก้อัตโนมัติ ${f.stats.fixed}`:"", f.rows[0]&&f.rows[0].derived?"ยอดยกมาคำนวณย้อนจากรายการแรก":""].filter(Boolean).join('<span aria-hidden="true">·</span>');
     }
-    return `<div class="file"><div class="file-top"><span class="file-name">${esc(f.name)}</span><span style="display:flex;gap:6px;align-items:center">${fileStatusPill(f)}<button class="x" title="เอาไฟล์นี้ออก" aria-label="เอาไฟล์นี้ออก" data-act="rm" data-id="${f.id}" type="button">×</button></span></div>${extra}</div>`;
+    if(f.kind==="excel" && f.grid){
+      const ncol = Math.max(...f.grid.slice(0,80).map(r=>r?r.length:0),0);
+      const hr = f.mapping.headerRow;
+      const hdr = hr>=0 ? (f.grid[hr]||[]) : [];
+      const opts = sel => `<option value="">—</option>`+Array.from({length:ncol},(_,c)=>`<option value="${c}"${sel===c?" selected":""}>${colName(c)}${hdr[c]!=null?": "+esc(String(hdr[c]).slice(0,24)):""}</option>`).join("");
+      extra += `<details${f.status==="error"?" open":""}><summary>กำหนดคอลัมน์เอง</summary><div class="mapgrid">
+        <label>แถวหัวตาราง<input type="text" inputmode="numeric" id="hr-${f.id}" value="${hr>=0?hr+1:""}" data-act="hr" data-id="${f.id}"></label>
+        ${MAP_FIELDS.map(([k,l])=>`<label>${l}<select id="map-${f.id}-${k}" data-act="map" data-id="${f.id}" data-k="${k}">${opts(f.mapping.map[k])}</select></label>`).join("")}
+      </div></details>`;
+    }
+    const act = f.status==="needpw" ? `<button class="btn sm" data-act="setup" data-id="${f.id}" type="button">${SVG_LOCK} ใส่รหัสผ่าน</button>`
+      : f.status==="done" ? `<button class="linkbtn" data-act="setup" data-id="${f.id}" type="button">เปลี่ยนธนาคาร</button>` : "";
+    return `<div class="file"><span class="ftype ${fc}">${fl}</span><div class="file-top"><span class="file-name">${esc(f.name)}</span><span class="file-acts">${fileStatusPill(f)}${act}<button class="x" title="เอาไฟล์นี้ออก" aria-label="เอาไฟล์นี้ออก" data-act="rm" data-id="${f.id}" type="button">×</button></span></div>${meta?`<div class="file-meta">${meta}</div>`:""}${extra}</div>`;
   }).join("");
 }
 $("files").addEventListener("click", e=>{
@@ -1386,6 +1589,7 @@ $("files").addEventListener("click", e=>{
   const f = files.find(x=>x.id==b.dataset.id); if(!f) return;
   if(b.dataset.act==="rm"){ files = files.filter(x=>x!==f); if(!files.length) resetToSample(); renderAll(); }
   if(b.dataset.act==="pw"){ const v=$("pw-"+f.id).value; f.password=v; processFile(f); }
+  if(b.dataset.act==="setup") openSetup();
 });
 $("files").addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.id && e.target.id.startsWith("pw-")){ const id=e.target.id.slice(3); const f=files.find(x=>x.id==id); if(f){ f.password=e.target.value; processFile(f);} } });
 $("files").addEventListener("change", e=>{
@@ -1443,6 +1647,7 @@ function renderTable(){
 }
 function renderAll(){
   const has = files.some(f=>f.status==="done" && f.rows.length);
+  { const rb=$("resetAll"); if(rb) rb.hidden = !files.length; }
   renderFiles(); renderStats(); renderTable();
   syncCut(has);
   syncReview();
@@ -1450,21 +1655,41 @@ function renderAll(){
 
 /* ---------------- Stage 3: hand the checked rows to ตัดยอด Statement ---------------- */
 const CUT_HEADERS = ["วันที่","เวลา","ประเภท/ช่องทาง","เลขที่อ้างอิง","รายละเอียด","ถอน","ฝาก","คงเหลือ","ธนาคาร","สถานะตรวจสอบ","คำเตือน"];   // ไฟล์ที่มีคอลัมน์ช่องทางแยก จะใช้ผังจาก exportLayout แทน
+/* บัญชีของแต่ละแถว: เลขบัญชีจากหัว Statement → ถ้าไม่มี ใช้ชื่อไฟล์ · เมื่อมีหลายบัญชี ต่อท้ายคอลัมน์ "ธนาคาร" เพื่อแยกบัญชี */
+const fileStem = n => String(n||"").replace(/\.(pdf|xlsx|xls|csv)$/i,"");
+function accountLabeler(list){
+  const id = (r,f) => r.acct || f.acct || null;
+  const key = (r,f) => (r.bank||"")+"|"+(id(r,f) || "file:"+f.id);
+  const keys = new Set(list.filter(x=>!x.r.opening || !x.r.derived).map(x=>key(x.r,x.f)));
+  const multi = keys.size > 1;
+  return { multi, count: keys.size, label: (r,f) => {
+    const b = r.bank || null; if(!multi) return b;
+    const a = id(r,f); return (b||"ไม่ทราบธนาคาร") + (a ? " · บัญชี "+a : " · "+fileStem(f.name));
+  } };
+}
 function cutTable(){
   // same rows and columns as Statement_Export.xlsx (sheet Transactions), dates carried like the export
-  const LAY = exportLayout(allRows().map(x=>x.r));
+  const list = allRows();
+  const LAY = exportLayout(list.map(x=>x.r));
+  const AC = accountLabeler(list);
   const rows=[]; let lastDate=null;
-  if(LAY.openingRow){
-    const o = LAY.openingRow, bankName = (allRows().find(x=>x.r.bank)||{r:{}}).r.bank || null;
+  if(!AC.multi && LAY.openingRow){
+    const o = LAY.openingRow, bankName = (list.find(x=>x.r.bank)||{r:{}}).r.bank || null;
     rows.push([ o.date ? new Date(Date.UTC(o.date.y, o.date.m-1, o.date.d)) : null, null, "ยอดยกมา", null, "ยอดยกมา", 0, 0, o.bal/100, bankName, "พร้อมใช้งาน", null ]);
   }
-  for(const {r} of allRows()){
-    if(r.opening) continue;
+  for(const {r,f} of list){
+    if(r.opening){
+      if(AC.multi && !r.derived && r.bal!=null){                         // หลายบัญชี: ยอดยกมาของแต่ละบัญชี
+        const fd = r.date || ((f.rows.find(x=>!x.opening && x.date && x.date.y)||{}).date) || null;
+        rows.push([ fd ? new Date(Date.UTC(fd.y, fd.m-1, fd.d)) : null, null, "ยอดยกมา", null, "ยอดยกมา", 0, 0, r.bal/100, AC.label(r,f), "พร้อมใช้งาน", null ]);
+      }
+      continue;
+    }
     const d = (r.date && r.date.y) ? r.date : lastDate; if(r.date && r.date.y) lastDate=r.date;
     rows.push([ d ? new Date(Date.UTC(d.y, d.m-1, d.d)) : null, r.time||null, ...LAY.cells(r), r.ref||null, LAY.desc(r),
-      (r.wd||0)/100, (r.dep||0)/100, r.bal==null?null:r.bal/100, r.bank||null, r.ok?"พร้อมใช้งาน":"ต้องตรวจสอบ", r.ok?null:(r.warn||null) ]);
+      (r.wd||0)/100, (r.dep||0)/100, r.bal==null?null:r.bal/100, AC.label(r,f), r.ok?"พร้อมใช้งาน":"ต้องตรวจสอบ", r.ok?null:(r.warn||null) ]);
   }
-  return { sheetName:"Transactions", headers:LAY.headers.slice(),
+  return { sheetName:"Transactions", headers:LAY.headers.slice(), accounts:AC.count,
     cols:{dt:0, time:1, type:2, channel:-1, ref:3, detail:4, w:5, d:6, bal:7, bank:8}, rows };
 }
 let cutTimer=null, reviewAuto=false;
@@ -1476,6 +1701,7 @@ function syncReview(){
   const busy = files.some(f=>f.status==="parsing");
   if(reviewAuto && !busy){
     reviewAuto=false;
+    if(files.some(f=>f.status==="needpw")){ openSetup(); toast("ยังมีไฟล์ที่ต้องใส่รหัสผ่าน"); return; }
     if(bad){
       openReview();
     }else if(files.some(f=>f.status==="done" && f.rows.length)){
@@ -1496,13 +1722,17 @@ function syncCut(has){
   const ds = t.rows.map(r=>r[0]).filter(Boolean);
   const dd = d => `${d.getUTCDate()}/${d.getUTCMonth()+1}/${d.getUTCFullYear()}`;
   $("cutSrc").innerHTML = `<span>ข้อมูลที่แปลงและตรวจแล้ว:</span> <b>${esc(done.map(f=>f.name).join(", "))}</b>
-    <span class="muted">${t.rows.length.toLocaleString()} รายการ${ds.length?` · ${dd(new Date(Math.min(...ds)))} ถึง ${dd(new Date(Math.max(...ds)))}`:""}</span>`;
+    <span class="muted">${t.accounts>1?`${t.accounts} บัญชี · `:""}${t.rows.length.toLocaleString()} รายการ${ds.length?` · ${dd(new Date(Math.min(...ds)))} ถึง ${dd(new Date(Math.max(...ds)))}`:""}</span>`;
   $("cutCtaInfo").innerHTML = `${done.length.toLocaleString()} ไฟล์ · ${t.rows.length.toLocaleString()} รายการ${bad?` · <span style="color:var(--warn)">รอตรวจ ${bad} รายการ</span>`:""}`;
   $("cutNote").hidden = !bad;
   $("cutNote").innerHTML = bad ? `ยังมี ${bad} รายการที่ยอดคงเหลือไม่ผ่านการตรวจ ผลตัดยอดใช้ได้ แต่ควรแก้รายการเหล่านั้นก่อนเพื่อความถูกต้อง <button class="btn sm" type="button" id="openReviewBtn">แก้รายการที่ผิด (${bad})</button>` : "";
-  const base = done.length===1 ? done[0].name.replace(/\.(pdf|xlsx|xls|csv)$/i,"") : "Statement_Export";
+  const base = done.length===1 ? done[0].name.replace(/\.(pdf|xlsx|xls|csv)$/i,"").replace(/_Cleanup(\s*\(\d+\))?$/i,"") : "Statement_Export";
   clearTimeout(cutTimer);
-  cutTimer = setTimeout(()=>{ if(window.__cut) window.__cut.load(t, base); }, 60);
+  cutTimer = setTimeout(()=>{
+    if(!window.__cut) return;
+    window.__cut.load(t, base);
+    if(pendingCutSettings && window.__cut.apply){ window.__cut.apply(pendingCutSettings); pendingCutSettings = null; toast("นำค่าที่ตั้งการตัดยอดจากไฟล์ Excel มาใช้แล้ว — แก้ไขต่อได้เลย"); }
+  }, 60);
 }
 
 /* inline editing */
@@ -1561,21 +1791,143 @@ $("skipAllBtn") && $("skipAllBtn").addEventListener("click", ()=>{
 });
 
 /* ---------------- File intake ---------------- */
+let pendingCutSettings = null;
+/* อ่านค่าตั้งการตัดยอดจากชีต "เครื่องมือ" ของไฟล์ที่ส่งออกจากเว็บนี้ (ตำแหน่งช่องเดียวกันทุกเวอร์ชัน) */
+function readCutSettings(ws){
+  const val = a => { const c = ws[a]; return c && c.v!=null && !(c.v instanceof Date) ? c.v : null; };
+  const str = a => { const x = val(a); return x==null ? "" : String(x).trim(); };
+  const num = a => { const x = val(a); if(x==null || x==="") return null; const n = typeof x==="number" ? x : parseFloat(String(x).replace(/[,\s฿]/g,"")); return isFinite(n) ? Math.abs(n) : null; };
+  const rowVals = (r, from, to) => { const out=[]; for(let c=from;c<=to;c++){ const t=str(colName(c)+r); if(t) out.push(t); } return out; };
+  if(!/ตามจำนวนเงิน/.test(str("B12")) && !/เครื่องมือ/.test(str("B2"))) return null;
+  const xf = str("C6"), d6 = str("D6");
+  const dm = d6.match(/ไม่เกิน\s*(\d+)\s*วัน/);
+  const zr = num("C15");
+  return {
+    names: [...rowVals(9,2,6), ...rowVals(10,2,6)],
+    gt: num("C13"), lt: num("C14"), zeros: zr!=null && zr>=1 ? Math.floor(zr) : null,
+    types: rowVals(17,2,60),
+    typeWords: /คำที่พิมพ์/.test(str("B18")) ? rowVals(18,2,60) : [],
+    exNames: [...rowVals(20,2,6), ...rowVals(21,2,6)],
+    exTypes: rowVals(22,2,60),
+    xfer: xf==="ใช่" ? true : xf==="ไม่" ? false : undefined,
+    xferDays: dm ? +dm[1] : undefined,
+  };
+}
 function resetToSample(){ files=[]; }
 async function addFiles(list){
-  const all = Array.from(list), arr = all.filter(f=>/\.(pdf|xlsx|xls|csv)$/i.test(f.name)).slice(0,1);
-  if(!arr.length){ toast("รองรับเฉพาะไฟล์ .pdf .xlsx .xls .csv"); return; }
-  // นำเข้าได้ครั้งละ 1 ไฟล์: ไฟล์ใหม่แทนที่ไฟล์เดิมและล้างค่าทั้งหมดก่อน
-  if(files.length) resetEverything(null, true);
-  if(all.length>1) toast(`นำเข้าได้ครั้งละ 1 ไฟล์ — ใช้ไฟล์ “${arr[0].name}”`);
+  const MAX_FILES = 12;
+  const all = Array.from(list), ok = all.filter(f=>/\.(pdf|xlsx|xls|csv)$/i.test(f.name));
+  if(!ok.length){ toast("รองรับเฉพาะไฟล์ .pdf .xlsx .xls .csv"); return; }
+  // วางได้หลายไฟล์ (หลายบัญชี) — ไฟล์ใหม่ต่อท้ายไฟล์เดิม · ไฟล์ซ้ำ (ชื่อและขนาดเดียวกัน) ข้าม
+  const dup = ok.filter(fl=>files.some(x=>x.name===fl.name && x.size===fl.size));
+  let arr = ok.filter(fl=>!dup.includes(fl));
+  const room = Math.max(0, MAX_FILES - files.length);
+  const over = arr.length > room; arr = arr.slice(0, room);
+  if(dup.length || over) toast([dup.length?`ข้ามไฟล์ที่นำเข้าแล้ว ${dup.length} ไฟล์`:"", over?`นำเข้าได้สูงสุด ${MAX_FILES} ไฟล์`:""].filter(Boolean).join(" · "));
+  if(!arr.length) return;
+  closeCut(); closeReview();
   for(const file of arr){
-    const f = {id:++fid, name:file.name, kind:/\.pdf$/i.test(file.name)?"pdf":"excel", status:"parsing", rows:[], password:""};
+    const f = {id:++fid, name:file.name, size:file.size, kind:/\.pdf$/i.test(file.name)?"pdf":"excel", status:"parsing", rows:[], password:""};
     f.buf = await file.arrayBuffer();
     files.push(f);
   }
   renderAll();
+  // อ่านไฟล์ก่อน (ตรวจธนาคารอัตโนมัติ) แล้วค่อยให้เลือกธนาคาร/ใส่รหัสผ่าน
   for(const f of files.filter(x=>x.status==="parsing")) await processFile(f);
+  openSetup();
 }
+/* ---------------- ตั้งค่าไฟล์ที่แนบ: เลือกธนาคาร + รหัสผ่าน ---------------- */
+function bankOptions(sel, detected){
+  return BANKS.map(b=>`<option value="${b.code}"${b.code===sel?" selected":""}>${esc(b.code==="AUTO" ? "อัตโนมัติ"+(detected&&BANK_BY[detected]?" — ตรวจพบ: "+BANK_BY[detected].name:"") : b.name)}</option>`).join("");
+}
+function setupRowHtml(f){
+    const [fc, fl] = ftypeOf(f.name);
+    const det = f.status==="done" ? f.bankCode : null, sel = f.bankChoice || "AUTO";
+    const n = f.status==="done" ? f.rows.filter(r=>!r.opening).length : 0;
+    const acct = f.accounts && f.accounts.length>1 ? `${f.accounts.length} บัญชีในไฟล์` : ((f.accounts && f.accounts[0]) || f.acct) ? `บัญชี ${esc((f.accounts && f.accounts[0]) || f.acct)}` : "";
+    const detLine = f.status==="done"
+        ? [det ? `<span class="ok">${SVG_OK} ตรวจพบ</span>${bankChip(det)}` : `<span>ไม่พบชื่อธนาคารในไฟล์ — เลือกเองได้</span>`, acct, `${n.toLocaleString()} รายการ`].filter(Boolean).join('<span aria-hidden="true">·</span>')
+      : f.status==="needpw" ? `<span class="lock">${SVG_LOCK} ${f.pwWrong ? "รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง" : "ไฟล์นี้ล็อกด้วยรหัสผ่าน"}</span>`
+      : f.status==="error" ? `<span style="color:var(--bad)">${esc(f.error||"อ่านไม่ได้")}</span>` : "กำลังอ่าน…";
+    const chipSel = BANK_BY[sel] && sel!=="AUTO" ? BANK_BY[sel] : (det && BANK_BY[det]) || null;
+    return `<div class="su-row${f.status==="needpw"?" locked":""}" data-id="${f.id}"><span class="ftype ${fc}">${fl}</span>
+      <div class="su-top"><span class="su-name">${esc(f.name)}</span>${fileStatusPill(f)}</div>
+      <div class="su-det">${detLine}</div>
+      <div class="su-fields${f.status==="needpw"?"":" one"}">
+        <label class="su-field">ธนาคาร<span class="in"><span class="bchip"><i data-chip style="background:${chipSel?chipSel.color:"var(--accent)"}">${chipSel?esc(chipSel.short):"A"}</i></span><select data-k="bank">${bankOptions(sel, det)}</select></span></label>
+        ${f.status==="needpw" ? `<label class="su-field">รหัสผ่านไฟล์ PDF<span class="in${f.pwWrong?" bad":""}">${SVG_LOCK}<input type="password" data-k="pw" autocomplete="off" placeholder="${f.pwWrong?"รหัสผ่านไม่ถูกต้อง ลองใหม่":"ใส่รหัสผ่านแล้วกด Enter"}"><button class="eye" type="button" data-eye aria-label="แสดงรหัสผ่าน"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg></button><button class="btn sm unlock" type="button" data-unlock>ปลดล็อก</button></span><span class="pw-msg" data-pwmsg></span></label>` : ""}
+      </div></div>`;
+}
+function setupSummary(){
+  const locked = files.filter(f=>f.status==="needpw").length;
+  const banks = new Set(files.filter(f=>f.status==="done").map(f=>f.bankCode||"?")).size;
+  const accts = new Set(files.filter(f=>f.status==="done").flatMap(f=>(f.accounts&&f.accounts.length ? f.accounts : [f.acct || "file:"+f.id]).map(a=>(f.bankCode||"")+"|"+a))).size;
+  $("setupMsg").innerHTML = `<b>${files.length}</b> ไฟล์` + (accts>1 ? ` · <b>${accts}</b> บัญชี ${banks>1?`จาก ${banks} ธนาคาร`:""} — จะจับคู่ยอดโอนระหว่างบัญชีให้` : "") + (locked ? ` · <span style="color:var(--warn)">ต้องใส่รหัสผ่าน ${locked} ไฟล์</span>` : "");
+  $("setupOk").textContent = locked ? `ยืนยัน (ยังล็อก ${locked} ไฟล์)` : "ยืนยันและตรวจสอบ →";
+}
+function openSetup(){
+  if(!files.length) return;
+  const body=$("setupBody");
+  body.innerHTML = files.map(setupRowHtml).join("");
+  setupSummary();
+  const d=$("setupDlg"); if(!d.open){ try{ d.showModal(); }catch(e){ d.setAttribute("open",""); } }
+  const pw = body.querySelector('input[data-k="pw"]'); if(pw) pw.focus();
+}
+/* ปลดล็อกทันทีในการ์ด: ใส่รหัสแล้ว Enter / กดปลดล็อก — ถูกก็อ่านไฟล์เลย ผิดก็บอกในช่องเดิม ไม่ต้องกดยืนยันทั้งหน้าต่าง
+   รหัสที่ถูกจะลองใช้กับไฟล์อื่นที่ยังล็อกอยู่ให้ด้วย (ธนาคารเดียวกันมักใช้รหัสเดียวกัน) */
+async function unlockRow(row){
+  const f = files.find(x=>x.id==row.dataset.id); if(!f || f.status!=="needpw") return;
+  const inp = row.querySelector('[data-k="pw"]'), msg = row.querySelector("[data-pwmsg]"), box = inp.closest(".in");
+  const pw = inp.value; if(!pw){ msg.className="pw-msg bad"; msg.textContent="ใส่รหัสผ่านก่อน"; inp.focus(); return; }
+  f.bankChoice = row.querySelector('[data-k="bank"]').value;
+  msg.className="pw-msg busy"; msg.textContent="กำลังตรวจรหัสผ่าน…"; inp.disabled=true;
+  f.password = pw; await processFile(f);
+  const replace = x => { const r=$("setupBody").querySelector(`.su-row[data-id="${x.id}"]`); if(!r) return null; const keep=r.querySelector('[data-k="bank"]').value; x.bankChoice = x.bankChoice || keep;
+    const t=document.createElement("div"); t.innerHTML=setupRowHtml(x); const n=t.firstElementChild; r.replaceWith(n); return n; };
+  if(f.status==="needpw"){
+    inp.disabled=false; box.classList.add("bad"); msg.className="pw-msg bad"; msg.textContent="รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง"; inp.select(); setupSummary(); return;
+  }
+  const n = replace(f); if(n){ n.classList.add("unlocked"); const det=n.querySelector(".su-det"); if(det) det.insertAdjacentHTML("afterbegin",`<span class="ok">${SVG_OK} ปลดล็อกแล้ว</span><span aria-hidden="true">·</span>`); }
+  let also=0;
+  for(const o of files.filter(x=>x.status==="needpw" && x!==f)){
+    const r=$("setupBody").querySelector(`.su-row[data-id="${o.id}"] [data-k="pw"]`); if(r && r.value) continue;
+    o.password = pw; await processFile(o);
+    if(o.status==="needpw"){ o.pwWrong=false; o.password=""; } else { also++; const m=replace(o); if(m) m.classList.add("unlocked"); }
+  }
+  setupSummary();
+  if(also) toast(`ใช้รหัสเดียวกันปลดล็อกไฟล์อื่นได้อีก ${also} ไฟล์`);
+  const next = $("setupBody").querySelector('input[data-k="pw"]:not(:disabled)'); if(next) next.focus(); else $("setupOk").focus();
+}
+$("setupBody").addEventListener("change", e=>{
+  if(!e.target.matches('select[data-k="bank"]')) return;
+  const b = BANK_BY[e.target.value], i = e.target.parentElement.querySelector("[data-chip]");
+  if(i){ i.style.background = b && b.code!=="AUTO" ? b.color : "var(--accent)"; i.textContent = b && b.code!=="AUTO" ? b.short : "A"; }
+});
+$("setupBody").addEventListener("click", e=>{
+  const un = e.target.closest("[data-unlock]"); if(un){ unlockRow(un.closest(".su-row")); return; }
+  const eye = e.target.closest("[data-eye]"); if(!eye) return;
+  const inp = eye.parentElement.querySelector("input"); inp.type = inp.type==="password" ? "text" : "password"; inp.focus();
+});
+$("setupAdd").addEventListener("click", ()=>{ const d=$("setupDlg"); if(d.open) d.close(); $("fileInput").click(); });
+async function confirmSetup(){
+  const todo=[];
+  for(const row of $("setupBody").querySelectorAll(".su-row")){
+    const f = files.find(x=>x.id==row.dataset.id); if(!f) continue;
+    const bank = row.querySelector('[data-k="bank"]').value, pwEl = row.querySelector('[data-k="pw"]');
+    let changed = bank !== (f.bankChoice||"AUTO");
+    f.bankChoice = bank;
+    if(pwEl && pwEl.value && f.status==="needpw"){ f.password = pwEl.value; changed = true; }
+    if(changed && f.status!=="parsing") todo.push(f);
+  }
+  const d=$("setupDlg"); if(d.open) d.close();
+  reviewAuto = true;
+  for(const f of todo) await processFile(f);
+  renderAll();
+}
+$("setupOk").addEventListener("click", confirmSetup);
+$("setupClose").addEventListener("click", ()=>{ const d=$("setupDlg"); if(d.open) d.close(); });
+$("setupBody").addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.matches('input[data-k="pw"]')){ e.preventDefault(); unlockRow(e.target.closest(".su-row")); } });
+$("setupBody").addEventListener("input", e=>{ if(e.target.matches('input[data-k="pw"]')){ const r=e.target.closest(".su-row"); r.querySelector(".in").classList.remove("bad"); const m=r.querySelector("[data-pwmsg]"); if(m){ m.textContent=""; m.className="pw-msg"; } } });
 async function processFile(f){
   f.status="parsing"; renderFiles();
   try{
@@ -1588,17 +1940,26 @@ async function processFile(f){
         throw err;
       }
       f.pwWrong=false;
-      Object.assign(f, parsePdfPages(pages, selectedBank));
+      Object.assign(f, parsePdfPages(pages, f.bankChoice||"AUTO"));
     } else {
       if(!window.XLSX) throw new Error("โหลดตัวอ่าน Excel ไม่สำเร็จ — รีเฟรชหน้า");
       const wb = XLSX.read(new Uint8Array(f.buf), {type:"array", cellDates:true});
       let grid=[];
-      for(const n of wb.SheetNames){ const g = XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null,blankrows:false}); if(g.length>grid.length) grid=g; }
+      const txName = wb.SheetNames.find(n=>n==="Transactions");
+      if(txName) grid = XLSX.utils.sheet_to_json(wb.Sheets[txName],{header:1,raw:true,defval:null,blankrows:false});
+      else for(const n of wb.SheetNames){ const g = XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null,blankrows:false}); if(g.length>grid.length) grid=g; }
+      // ไฟล์ Excel ที่ตัดยอดจากเว็บนี้แล้ว: อ่านค่าที่ตั้งไว้ในชีต "เครื่องมือ" (รวมที่แก้ใน Excel) มาใช้ต่อ
+      f.cutSettings = wb.Sheets["เครื่องมือ"] && txName ? readCutSettings(wb.Sheets["เครื่องมือ"]) : null;
+      f.cutFile = !!f.cutSettings;
+      if(f.cutFile) pendingCutSettings = f.cutSettings;
       f.grid = grid; f.mapping = autoMapExcel(grid);
-      Object.assign(f, parseExcelGrid(grid, f.mapping, selectedBank, f.name));
+      Object.assign(f, parseExcelGrid(grid, f.mapping, f.bankChoice||"AUTO", f.name));
     }
     f.status = f.error ? "error" : "done";
-    reviewAuto = true;
+    if(f.cutFile && f.status==="done"){   // ไฟล์ตัดยอดเดิมตรวจยอดมาแล้ว — แถวที่ถูกลบออกใน Excel ทำให้ยอดไม่ต่อเนื่อง จึงยืนยันยอดตามไฟล์ให้
+      let n=0; for(const r of f.rows) if(!r.ok && /ยอดคงเหลือไม่ต่อเนื่อง/.test(r.warn||"")){ r.skipBal=true; n++; }
+      if(n) f.stats = verify(f.rows);
+    }
   }catch(err){
     f.status="error"; f.error = (err && err.message) || "อ่านไฟล์ไม่สำเร็จ";
   }
@@ -1606,7 +1967,7 @@ async function processFile(f){
 }
 function reparseExcel(f){
   f.error=null;
-  Object.assign(f, parseExcelGrid(f.grid, f.mapping, selectedBank, f.name));
+  Object.assign(f, parseExcelGrid(f.grid, f.mapping, f.bankChoice||"AUTO", f.name));
   f.status = f.error ? "error" : "done";
   renderAll();
 }
@@ -1620,7 +1981,7 @@ input.addEventListener("change", ()=>{ if(input.files.length) addFiles(input.fil
 drop.addEventListener("drop", e=>{ if(e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
 $("dlgSkip").addEventListener("click", ()=>{ closeReview(); openCut(); });
 function resetEverything(msg, keepBank){
-  files=[]; closeReview(); closeCut(); reviewAuto=false;
+  files=[]; closeReview(); closeCut(); reviewAuto=false; pendingCutSettings=null; { const d=$("setupDlg"); if(d && d.open) d.close(); }
   if(!keepBank){ selectedBank="AUTO"; try{ localStorage.setItem("ll.bank","AUTO"); }catch(e){} }
   if(window.__cut && window.__cut.reset) window.__cut.reset();
   renderBanks(); renderAll();
@@ -1630,7 +1991,14 @@ function resetEverything(msg, keepBank){
   }
 }
 window.__resetAll = resetEverything;
-$("resetAll").addEventListener("click", ()=>resetEverything("ล้างค่าทั้งหมดแล้ว"));
+/* ปุ่มเริ่มใหม่: กดครั้งแรกถามยืนยันในปุ่ม · กดซ้ำภายใน 4 วินาทีจึงล้าง */
+let resetArm=null;
+function disarmReset(){ clearTimeout(resetArm); resetArm=null; const b=$("resetAll"); b.classList.remove("armed"); $("resetLbl").textContent="ล้างไฟล์ทั้งหมด · เริ่มใหม่"; }
+$("resetAll").addEventListener("click", ()=>{
+  if(resetArm){ disarmReset(); resetEverything("ล้างไฟล์และค่าที่ตั้งทั้งหมดแล้ว · แนบ Statement ใหม่ได้เลย"); return; }
+  $("resetAll").classList.add("armed"); $("resetLbl").textContent = `กดอีกครั้งเพื่อยืนยัน — ลบ ${files.length} ไฟล์`;
+  resetArm = setTimeout(disarmReset, 4000);
+});
 $("dlgClose").addEventListener("click", closeReview);
 $("openCutBtn").addEventListener("click", openCut);
 $("cutClose").addEventListener("click", closeCut);
@@ -1754,10 +2122,16 @@ const TQ = "'" + TOOL + "'";
 const NAMES_REF = TQ + '!$C$9:$G$10';
 const GT_REF = TQ + '!$C$13';
 const LT_REF = TQ + '!$C$14';
+const ZR_REF = TQ + '!$C$15';
+const XF_REF = TQ + '!$C$6';
+const XFERS = 'โอนระหว่างบัญชี';
+const ACCTS = 'สรุปแยกบัญชี';
+const zeroHit = (g, z) => z >= 1 && g > 0 && Math.round(g * 100) % Math.round(Math.pow(10, z + 2)) === 0;
+const zeroLabel = z => 'ลงท้าย ' + '0'.repeat(z);
 const TYPES_REF = TQ + '!$C$17:$E$17';
 const EXN_REF = TQ + '!$C$20:$G$21';
 const EXT_REF = TQ + '!$C$22:$E$22';
-const COLORS = { navy: 'FF1F4E78', slate: 'FF44546A', o1: 'FFFFE699', o2: 'FFF8CBAD', o3: 'FFBDD7EE', o4: 'FFD9C3E9',
+const COLORS = { navy: 'FF1F4E78', slate: 'FF44546A', o0: 'FFC6EBDD', o1: 'FFFFE699', o2: 'FFF8CBAD', o3: 'FFBDD7EE', o4: 'FFD9C3E9',
   input: 'FFFFF2CC', hdr: 'FFD9E1F2', tot: 'FFDDEBF7', net: 'FFE2EFDA', band2: 'FFF7F9FC', white: 'FFFFFFFF', ex: 'FFEDEDED',
   line: 'FFBFBFBF', hint: 'FF7F7F7F', blue: 'FF0000FF', green: 'FF548235' };
 const NUM = '#,##0.00;-#,##0.00;"-"';
@@ -1941,6 +2315,53 @@ function itemTypes(table) {                                          // ตั�
   return { items: top(items).map(([v, n]) => ({ v, n })), channels: top(chans).map(([v, n]) => ({ v, n })) };
 }
 
+/* ลำดับตัวเลือก (แถวที่ตรงหลายตัวเลือก นับในตัวเลือกแรกที่ตรง):
+   0 = โอนระหว่างบัญชีตัวเอง (T) · 1 = ซ้ำ ถอน/ฝาก (L) · 2 = ตรงชื่อ (M) · 3 = ตามยอดเงิน (N) · 4 = ประเภท/ช่องทาง (O) */
+const OPT_KEYS = ['T', 'L', 'M', 'N', 'O'];
+function optOf(res, i) { for (let k = 0; k < OPT_KEYS.length; k++) if (res[OPT_KEYS[k]][i]) return k; return -1; }
+function optSub(res, i, opt) { return opt === 3 ? res.N[i] : opt === 0 ? res.T[i] : ''; }
+const XFER_MAX_DAYS = 7;
+
+/* จับคู่ยอดโอนระหว่างบัญชีตัวเอง: ถอนจากบัญชีหนึ่ง ↔ ฝากเข้าอีกบัญชี ยอดเท่ากัน วันที่ห่างกันไม่เกิน tol วัน
+   ใช้คอลัมน์ "ธนาคาร" เป็นตัวระบุบัญชี (เมื่อมีหลายบัญชี ระบบเติมเลขบัญชีต่อท้ายชื่อธนาคาร) */
+function matchTransfers(table, X, tol) {
+  const { rows, cols } = table, n = rows.length;
+  const acct = i => (cols.bank >= 0 && rows[i][cols.bank] != null ? String(rows[i][cols.bank]).trim() : '');
+  const day = i => (rows[i][cols.dt] instanceof Date ? Math.floor(serial(rows[i][cols.dt])) : null);
+  const mins = i => { const v = cols.time >= 0 ? rows[i][cols.time] : null; const m = v == null ? null : String(v).match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+  const cents = v => Math.round(numOr0(v) * 100);
+  const accounts = [...new Set(rows.map((_, i) => acct(i)).filter(Boolean))];
+  const T = new Array(n).fill(''), pairs = [];
+  if (accounts.length < 2) return { T, pairs, accounts };
+  const depBy = new Map();
+  for (let i = 0; i < n; i++) {
+    if (X[i] || day(i) == null || !acct(i)) continue;
+    const g = cents(rows[i][cols.d]); if (g > 0) { if (!depBy.has(g)) depBy.set(g, []); depBy.get(g).push(i); }
+  }
+  const cand = [];
+  for (let i = 0; i < n; i++) {
+    if (X[i] || day(i) == null || !acct(i)) continue;
+    const w = cents(rows[i][cols.w]); if (!(w > 0)) continue;
+    for (const j of depBy.get(w) || []) {
+      if (acct(j) === acct(i)) continue;
+      const dd = Math.abs(day(j) - day(i)); if (dd > tol) continue;
+      const a = mins(i), b = mins(j);
+      cand.push({ i, j, dd, td: a != null && b != null && dd === 0 ? Math.abs(a - b) : 9999 });
+    }
+  }
+  cand.sort((x, y) => x.dd - y.dd || x.td - y.td || x.i - y.i || x.j - y.j);
+  const used = new Set();
+  for (const c of cand) {
+    if (used.has(c.i) || used.has(c.j)) continue;
+    used.add(c.i); used.add(c.j);
+    const k = pairs.length + 1, lab = 'คู่ ' + k;
+    T[c.i] = lab; T[c.j] = lab;
+    pairs.push({ k, label: lab, w: c.i, d: c.j, amt: numOr0(rows[c.j][cols.d]), dd: c.dd, from: acct(c.i), to: acct(c.j) });
+  }
+  pairs.sort((a, b) => Math.min(a.w, a.d) - Math.min(b.w, b.d));
+  return { T, pairs, accounts };
+}
+
 /* ---------- replicate the workbook formulas for preview + cached results ---------- */
 function compute(table, settings) {
   const { rows, cols } = table;
@@ -1949,7 +2370,8 @@ function compute(table, settings) {
   const exNames = (settings.exNames || []).map(s => s.trim()).filter(Boolean).slice(0, 10);
   const exTypes = (settings.exTypes || []).map(s => s.toLowerCase());
   const kb = isKBank(table), typeWords = (kb ? (settings.typeWords || []) : []).map(s => s.toLowerCase()).filter(Boolean);
-  const gt = settings.gt, lt = settings.lt;
+  const gt = settings.gt, lt = settings.lt, zr = settings.zeros >= 1 && settings.zeros <= 9 ? Math.floor(settings.zeros) : null;
+  const xferOn = settings.xfer !== false, xferDays = Math.max(0, Math.min(XFER_MAX_DAYS, Math.floor(settings.xferDays || 0)));
   const n = rows.length;
   const day = i => (rows[i][cols.dt] instanceof Date ? Math.floor(serial(rows[i][cols.dt])) : null);
   const key = (dd, a) => dd + '|' + a.toFixed(2);
@@ -1960,14 +2382,18 @@ function compute(table, settings) {
     return (cols.detail >= 0 && exNames.some(nm => det.includes(nm.toLowerCase()))) || (!!ty && exTypes.includes(ty))
       || (kb && exTypes.some(t => t && (ty.includes(t) || det.includes(t) || ch.includes(t))));
   });
+  const xm = matchTransfers(table, X, xferDays);
+  const allPairs = xm.pairs;
+  const T = xferOn ? xm.T : new Array(n).fill('');
+  const pairs = xferOn ? allPairs : [];
   const wTot = new Map(), dTot = new Map(), wSeen = new Map(), dSeen = new Map();
   const inc = (m, k) => { const v = (m.get(k) || 0) + 1; m.set(k, v); return v; };
-  for (let i = 0; i < n; i++) { const dd = day(i); if (dd == null || X[i]) continue; inc(wTot, key(dd, numOr0(rows[i][cols.w]))); inc(dTot, key(dd, numOr0(rows[i][cols.d]))); }
+  for (let i = 0; i < n; i++) { const dd = day(i); if (dd == null || X[i] || T[i]) continue; inc(wTot, key(dd, numOr0(rows[i][cols.w]))); inc(dTot, key(dd, numOr0(rows[i][cols.d]))); }
   const L = [], M = [], N = [], O = [];
   for (let i = 0; i < n; i++) {
     const r = rows[i], g = numOr0(r[cols.d]), w = numOr0(r[cols.w]), dd = day(i);
     let l = '';
-    if (dd != null && !X[i]) {
+    if (dd != null && !X[i] && !T[i]) {
       const rd = inc(dSeen, key(dd, g)), rw = inc(wSeen, key(dd, w));
       if (g > 0) { if (rd <= (wTot.get(key(dd, g)) || 0)) l = 'ซ้ำ'; }
       else if (w > 0) { if (rw <= (dTot.get(key(dd, w)) || 0)) l = 'ซ้ำ'; }
@@ -1975,56 +2401,71 @@ function compute(table, settings) {
     L.push(l);
     const det = lower(r, cols.detail), ty = lower(r, cols.type);
     M.push(!X[i] && g > 0 && cols.detail >= 0 && names.some(nm => det.includes(nm.toLowerCase())) ? 'ตรง' : '');
-    N.push(!X[i] && g > 0 && gt != null && g > gt ? 'มากกว่า' : !X[i] && g > 0 && lt != null && g < lt ? 'น้อยกว่า' : '');
+    N.push(!X[i] && g > 0 && gt != null && g > gt ? 'มากกว่า' : !X[i] && g > 0 && lt != null && g < lt ? 'น้อยกว่า' : !X[i] && zr && zeroHit(g, zr) ? zeroLabel(zr) : '');
     const ch = lower(r, cols.channel == null ? -1 : cols.channel);
     const tyHit = (ty && types.includes(ty))
       || (kb && types.some(t => { const q = String(t).toLowerCase(); return q && (det.includes(q) || ty.includes(q) || ch.includes(q)); }))
       || (kb && typeWords.some(w => det.includes(w) || ty.includes(w) || ch.includes(w)));
     O.push(!X[i] && g > 0 && tyHit ? 'ตรงประเภท' : '');
   }
-  const summary = [[0, 0], [0, 0], [0, 0], [0, 0]];
+  const out = { T, L, M, N, O };
+  const summary = OPT_KEYS.map(() => [0, 0]);
   const dates = rows.map(r => r[cols.dt]).filter(d => d instanceof Date);
   let months = [];
   if (dates.length) {
     const min = new Date(Math.min(...dates)), max = new Date(Math.max(...dates));
     for (let y = min.getUTCFullYear(), m = min.getUTCMonth(); y < max.getUTCFullYear() || (y === max.getUTCFullYear() && m <= max.getUTCMonth()); m++) {
       if (m > 11) { m = 0; y++; }
-      months.push({ y, m, total: 0, d: [0, 0, 0, 0] });
+      months.push({ y, m, total: 0, d: OPT_KEYS.map(() => 0) });
     }
   }
   const mIndex = d => (months.length ? (d.getUTCFullYear() - months[0].y) * 12 + d.getUTCMonth() - months[0].m : -1);
+  // ยอดแยกตามบัญชี (คอลัมน์ "ธนาคาร" ระบุบัญชีเมื่อมีหลายบัญชี)
+  const acctOf = i => (cols.bank >= 0 && rows[i][cols.bank] != null ? String(rows[i][cols.bank]).trim() : '');
+  const byAcct = new Map();
+  const blank = () => ({ total: 0, wd: 0, d: OPT_KEYS.map(() => 0), n: 0 });
   for (let i = 0; i < n; i++) {
     const r = rows[i], g = numOr0(r[cols.d]);
-    const opt = L[i] ? 0 : M[i] ? 1 : N[i] ? 2 : O[i] ? 3 : -1;
+    const opt = optOf(out, i);
     if (opt >= 0) { summary[opt][0]++; summary[opt][1] += g; }
+    const a = acctOf(i);
+    let e = byAcct.get(a); if (!e) { e = Object.assign({ acct: a }, blank()); byAcct.set(a, e); }
+    e.total += g; e.wd += numOr0(r[cols.w]); e.n++; if (opt >= 0) e.d[opt] += g;
     const dt = r[cols.dt];
     if (dt instanceof Date) {
       const mo = months[mIndex(dt)];
-      if (mo) { mo.total += g; if (opt >= 0) mo.d[opt] += g; }
+      if (mo) {
+        mo.total += g; if (opt >= 0) mo.d[opt] += g;
+        const ma = mo.acct || (mo.acct = {}); const x = ma[a] || (ma[a] = blank());
+        x.total += g; if (opt >= 0) x.d[opt] += g;
+      }
     }
   }
-  months.forEach(mo => { mo.net = mo.total - mo.d.reduce((a, b) => a + b, 0); });
+  const sumNet = o => { o.net = o.total - o.d.reduce((p, q) => p + q, 0); };
+  months.forEach(mo => { sumNet(mo); Object.values(mo.acct || {}).forEach(sumNet); });
+  const acctSummary = [...byAcct.values()]; acctSummary.forEach(sumNet);
   const minD = dates.length ? new Date(Math.min(...dates)) : null, maxD = dates.length ? new Date(Math.max(...dates)) : null;
   let saved = [0, 0]; const savedList = [];
   if ((exNames.length || exTypes.length) && !settings.__noEx) {
     const plain = compute(table, Object.assign({}, settings, { exNames: [], exTypes: [], __noEx: true }));
     for (let i = 0; i < n; i++) {
       if (!X[i]) continue;
-      const opt = plain.L[i] ? 0 : plain.M[i] ? 1 : plain.N[i] ? 2 : plain.O[i] ? 3 : -1;
+      const opt = optOf(plain, i);
       if (opt < 0) continue;
       saved[0]++; saved[1] += numOr0(rows[i][cols.d]);
-      savedList.push({ i, opt, sub: opt === 2 ? plain.N[i] : '' });
+      savedList.push({ i, opt, sub: optSub(plain, i, opt) });
     }
   }
-  return { L, M, N, O, X, saved, savedList, summary, months, minD, maxD, dateCount: dates.length, names, types: (settings.types || []).slice(),
-    kb, typeWords: (settings.typeWords || []).slice(),
-    exNames, exTypes: (settings.exTypes || []).slice(), gt, lt };
+  return { T, L, M, N, O, X, saved, savedList, summary, months, minD, maxD, dateCount: dates.length, names, types: (settings.types || []).slice(),
+    kb, typeWords: (settings.typeWords || []).slice(), pairs, allPairs, accounts: xm.accounts, xferOn, xferDays, acctSummary,
+    exNames, exTypes: (settings.exTypes || []).slice(), gt, lt, zeros: zr };
 }
 
 /* ---------- build the formatted workbook ---------- */
 function buildWorkbook(ExcelJS, table, settings) {
   const res = compute(table, settings);
   const { rows, cols, headers } = table;
+  const multi = res.accounts.length > 1;
   // as many type cells as were picked (at least 5 so more can be added in Excel)
   const nT = Math.max(5, res.types.length), nX = Math.max(5, res.exTypes.length), nW = Math.max(5, res.typeWords.length);
   const TYPE_COLS = Array.from({ length: nT }, (_, i) => colLetter(3 + i)), EXT_COLS = Array.from({ length: nX }, (_, i) => colLetter(3 + i));
@@ -2035,6 +2476,8 @@ function buildWorkbook(ExcelJS, table, settings) {
   wb.calcProperties = Object.assign(wb.calcProperties || {}, { fullCalcOnLoad: true });
   const tw = wb.addWorksheet(TOOL, { properties: { tabColor: { argb: COLORS.navy } }, views: [{ showGridLines: false }] });
   const cw = wb.addWorksheet(CUTS, { views: [{ state: 'frozen', ySplit: 1 }] });
+  const aw = multi ? wb.addWorksheet(ACCTS, { properties: { tabColor: { argb: 'FF1F4E78' } }, views: [{ showGridLines: false }] }) : null;
+  const xw = multi ? wb.addWorksheet(XFERS, { properties: { tabColor: { argb: 'FF2E8B74' } }, views: [{ state: 'frozen', ySplit: 1 }] }) : null;
   const ws = wb.addWorksheet('Transactions', { views: [{ state: 'frozen', ySplit: 1 }] });
 
   const font = (o = {}) => Object.assign({ name: FONT, size: 12 }, o, o.color ? { color: { argb: o.color } } : {});
@@ -2045,13 +2488,13 @@ function buildWorkbook(ExcelJS, table, settings) {
   /* ===== Transactions ===== */
   const last = rows.length + 1;
   const nCols = headers.length;
-  const hc = { L: nCols + 1, M: nCols + 2, N: nCols + 3, O: nCols + 4, P: nCols + 5 };
-  const HL = colLetter(hc.L), HM = colLetter(hc.M), HN = colLetter(hc.N), HO = colLetter(hc.O), HP = colLetter(hc.P);
+  const hc = { T: nCols + 1, L: nCols + 2, M: nCols + 3, N: nCols + 4, O: nCols + 5, P: nCols + 6 };
+  const HT = colLetter(hc.T), HL = colLetter(hc.L), HM = colLetter(hc.M), HN = colLetter(hc.N), HO = colLetter(hc.O), HP = colLetter(hc.P);
   const A = colLetter(cols.dt + 1), F = colLetter(cols.w + 1), G = colLetter(cols.d + 1);
   const E = cols.detail >= 0 ? colLetter(cols.detail + 1) : null, C = cols.type >= 0 ? colLetter(cols.type + 1) : null;
   const CH = (cols.channel != null && cols.channel >= 0) ? colLetter(cols.channel + 1) : null;
 
-  const allHeaders = headers.concat(['ตัวเลือก 1\nซ้ำ ถอน/ฝาก', 'ตัวเลือก 2\nตรงชื่อ', 'ตัวเลือก 3\nตามยอดเงิน', 'ตัวเลือก 4\nประเภท/ช่องทาง', 'ยกเว้น\nไม่ตัด']);
+  const allHeaders = headers.concat(['ตัวเลือก 1\nโอนระหว่างบัญชี', 'ตัวเลือก 2\nซ้ำ ถอน/ฝาก', 'ตัวเลือก 3\nตรงชื่อ', 'ตัวเลือก 4\nตามยอดเงิน', 'ตัวเลือก 5\nประเภท/ช่องทาง', 'ยกเว้น\nไม่ตัด']);
   allHeaders.forEach((h, i) => {
     const c = ws.getCell(1, i + 1); c.value = h;
     c.font = font({ bold: true, color: 'FFFFFFFF' });
@@ -2060,9 +2503,9 @@ function buildWorkbook(ExcelJS, table, settings) {
   });
   ws.getRow(1).height = 36;
   const widthFor = h => (/วันที่/.test(h) ? 12 : /เวลา/.test(h) ? 8 : /ประเภท|ช่องทาง/.test(h) ? 24 : /อ้างอิง/.test(h) ? 14
-    : /รายละเอียด/.test(h) ? 58 : /ถอน|ฝาก|คงเหลือ/.test(h) ? 14 : /ธนาคาร/.test(h) ? 22 : /สถานะ/.test(h) ? 13 : 12);
+    : /รายละเอียด/.test(h) ? 58 : /ถอน|ฝาก|คงเหลือ/.test(h) ? 14 : /ธนาคาร/.test(h) ? (multi ? 40 : 22) : /สถานะ/.test(h) ? 13 : 12);
   headers.forEach((h, i) => { ws.getColumn(i + 1).width = widthFor(h); });
-  [14, 13, 14, 16, 13].forEach((w, i) => { ws.getColumn(nCols + 1 + i).width = w; });
+  [15, 14, 13, 14, 16, 13].forEach((w, i) => { ws.getColumn(nCols + 1 + i).width = w; });
   const centerCols = new Set(headers.map((h, i) => (/วันที่|เวลา|สถานะ/.test(h) ? i : -1)).filter(i => i >= 0));
   const amountCols = new Set([cols.w, cols.d, cols.bal].filter(i => i >= 0));
 
@@ -2077,7 +2520,7 @@ function buildWorkbook(ExcelJS, table, settings) {
       if (centerCols.has(i)) c.alignment = { horizontal: 'center' };
     });
     const part = `$${A}$2:${A}${r}`, full = `$${A}$2:$${A}$${last}`;
-    const exPart = `,$${HP}$2:${HP}${r},""`, exFull = `,$${HP}$2:$${HP}$${last},""`;
+    const exPart = `,$${HP}$2:${HP}${r},"",$${HT}$2:${HT}${r},""`, exFull = `,$${HP}$2:$${HP}$${last},"",$${HT}$2:$${HT}$${last},""`;
     const depRank = `COUNTIFS(${day(part, r)},$${G}$2:${G}${r},${G}${r}${exPart})`;
     const wdCnt = `COUNTIFS(${day(full, r)},$${F}$2:$${F}$${last},${G}${r}${exFull})`;
     const wdRank = `COUNTIFS(${day(part, r)},$${F}$2:${F}${r},${F}${r}${exPart})`;
@@ -2088,11 +2531,13 @@ function buildWorkbook(ExcelJS, table, settings) {
         `${E ? `,SUMPRODUCT(ISNUMBER(SEARCH(${extRef},${E}${r}&""))*(${extRef}<>""))>0` : ''}` +
         `${CH ? `,SUMPRODUCT(ISNUMBER(SEARCH(${extRef},${CH}${r}&""))*(${extRef}<>""))>0` : ''})`
       : (C ? `AND(${C}${r}<>"",COUNTIF(${extRef},${C}${r})>0)` : 'FALSE');
-    const notEx = `${HP}${r}=""`;
+    const pairLab = res.allPairs.length ? (res.allPairs.find(p => p.w === idx || p.d === idx) || {}).label : null;
     const f = {
-      L: `IF(OR(NOT(ISNUMBER(${A}${r})),${HP}${r}<>""),"",IF(${G}${r}>0,IF(${depRank}<=${wdCnt},"ซ้ำ",""),IF(${F}${r}>0,IF(${wdRank}<=${depCnt},"ซ้ำ",""),"")))`,
+      // คู่โอนระหว่างบัญชีถูกจับคู่ตอนสร้างไฟล์ (ข้ามบัญชี/ข้ามวัน) · เปิด/ปิดได้ที่ชีตเครื่องมือ C6
+      T: pairLab ? `IF(OR(${XF_REF}<>"ใช่",${HP}${r}<>""),"","${pairLab}")` : null,
+      L: `IF(OR(NOT(ISNUMBER(${A}${r})),${HP}${r}<>"",${HT}${r}<>""),"",IF(${G}${r}>0,IF(${depRank}<=${wdCnt},"ซ้ำ",""),IF(${F}${r}>0,IF(${wdRank}<=${depCnt},"ซ้ำ",""),"")))`,
       M: E ? `IF(OR(${G}${r}<=0,${HP}${r}<>""),"",IF(SUMPRODUCT(ISNUMBER(SEARCH(${NAMES_REF},${E}${r}))*(${NAMES_REF}<>""))>0,"ตรง",""))` : '""',
-      N: `IF(OR(${G}${r}<=0,${HP}${r}<>""),"",IF(AND(ISNUMBER(${GT_REF}),${G}${r}>${GT_REF}),"มากกว่า",IF(AND(ISNUMBER(${LT_REF}),${G}${r}<${LT_REF}),"น้อยกว่า","")))`,
+      N: `IF(OR(${G}${r}<=0,${HP}${r}<>""),"",IF(AND(ISNUMBER(${GT_REF}),${G}${r}>${GT_REF}),"มากกว่า",IF(AND(ISNUMBER(${LT_REF}),${G}${r}<${LT_REF}),"น้อยกว่า",IF(AND(ISNUMBER(${ZR_REF}),${ZR_REF}>=1,ROUND(MOD(ROUND(${G}${r}*100,0),10^(INT(${ZR_REF})+2)),0)=0),"ลงท้าย "&REPT("0",INT(${ZR_REF})),""))))`,
       O: res.kb
         ? `IF(OR(${G}${r}<=0,${HP}${r}<>""),"",IF(OR(${C ? `AND(${C}${r}<>"",COUNTIF(${typesRef},${C}${r})>0)` : 'FALSE'}` +
           `${C ? `,SUMPRODUCT(ISNUMBER(SEARCH(${typesRef},${C}${r}&""))*(${typesRef}<>""))>0` : ''}` +
@@ -2105,30 +2550,35 @@ function buildWorkbook(ExcelJS, table, settings) {
         : (C ? `IF(OR(${G}${r}<=0,${C}${r}="",${HP}${r}<>""),"",IF(COUNTIF(${typesRef},${C}${r})>0,"ตรงประเภท",""))` : '""'),
       P: `IF(OR(${exName},${exType}),"ยกเว้น","")`,
     };
-    for (const k of ['L', 'M', 'N', 'O', 'P']) {
+    for (const k of ['T', 'L', 'M', 'N', 'O', 'P']) {
       const c = ws.getCell(r, hc[k]);
+      c.alignment = { horizontal: 'center' };
+      if (!f[k]) continue;
       const result = k === 'P' ? (res.X[idx] ? 'ยกเว้น' : '') : res[k][idx];
       c.value = result ? { formula: f[k], result } : { formula: f[k] };
-      c.alignment = { horizontal: 'center' };
     }
   });
   const cfRef = `A2:${HP}${last}`;
   const cfFill = argb => ({ fill: { type: 'pattern', pattern: 'solid', bgColor: { argb } } });
   ws.addConditionalFormatting({ ref: cfRef, rules: [
-    { type: 'expression', priority: 1, stopIfTrue: true, formulae: [`$${HL}2="ซ้ำ"`], style: cfFill(COLORS.o1) },
-    { type: 'expression', priority: 2, stopIfTrue: true, formulae: [`$${HM}2="ตรง"`], style: cfFill(COLORS.o2) },
-    { type: 'expression', priority: 3, stopIfTrue: true, formulae: [`$${HN}2<>""`], style: cfFill(COLORS.o3) },
-    { type: 'expression', priority: 4, stopIfTrue: true, formulae: [`$${HO}2<>""`], style: cfFill(COLORS.o4) },
-    { type: 'expression', priority: 5, formulae: [`$${HP}2<>""`], style: cfFill(COLORS.ex) },
+    { type: 'expression', priority: 1, stopIfTrue: true, formulae: [`$${HT}2<>""`], style: cfFill(COLORS.o0) },
+    { type: 'expression', priority: 2, stopIfTrue: true, formulae: [`$${HL}2="ซ้ำ"`], style: cfFill(COLORS.o1) },
+    { type: 'expression', priority: 3, stopIfTrue: true, formulae: [`$${HM}2="ตรง"`], style: cfFill(COLORS.o2) },
+    { type: 'expression', priority: 4, stopIfTrue: true, formulae: [`$${HN}2<>""`], style: cfFill(COLORS.o3) },
+    { type: 'expression', priority: 5, stopIfTrue: true, formulae: [`$${HO}2<>""`], style: cfFill(COLORS.o4) },
+    { type: 'expression', priority: 6, formulae: [`$${HP}2<>""`], style: cfFill(COLORS.ex) },
   ] });
   ws.autoFilter = `A1:${HP}${last}`;
 
   /* ===== Cut list sheet ===== */
   const TH_MONTH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-  const OPT_LABEL = ['ตัวเลือก 1: ซ้ำ ถอน/ฝาก', 'ตัวเลือก 2: ตรงชื่อ', 'ตัวเลือก 3: ตามยอดเงิน', 'ตัวเลือก 4: ประเภท/ช่องทาง'];
-  const OPT_FILL = [COLORS.o1, COLORS.o2, COLORS.o3, COLORS.o4];
-  const cutHeads = [['แถวในชีต Transactions', 16], ['เดือน', 16], ['วันที่', 12], ['เวลา', 9], ['สถานะ', 26],
+  const OPT_LABEL = ['ตัวเลือก 1: โอนระหว่างบัญชี', 'ตัวเลือก 2: ซ้ำ ถอน/ฝาก', 'ตัวเลือก 3: ตรงชื่อ', 'ตัวเลือก 4: ตามยอดเงิน', 'ตัวเลือก 5: ประเภท/ช่องทาง'];
+  const OPT_FILL = [COLORS.o0, COLORS.o1, COLORS.o2, COLORS.o3, COLORS.o4];
+  const pairOf = new Map(); res.allPairs.forEach(p => { pairOf.set(p.w, p); pairOf.set(p.d, p); });
+  const cutHeads = [['แถวในชีต Transactions', 16], ['เดือน', 16], ['วันที่', 12], ['เวลา', 9], ['สถานะ', 30],
     ['ประเภท/ช่องทาง', 22], ['รายละเอียด', 58], ['ยอดฝากที่ตัด', 15], ['ยอดฝากที่ยกเว้น', 16]];
+  if (multi) cutHeads.splice(5, 0, ['บัญชี', 36]);
+  const AMT_I = multi ? 8 : 7;
   cutHeads.forEach(([h, w], i) => {
     const cc = cw.getCell(1, i + 1); cc.value = h;
     cc.font = font({ bold: true, color: 'FFFFFFFF' }); cc.fill = solid(COLORS.navy);
@@ -2140,9 +2590,9 @@ function buildWorkbook(ExcelJS, table, settings) {
   rows.forEach((r0, idx) => {
     const g = typeof r0[cols.d] === 'number' ? r0[cols.d] : 0;
     if (g <= 0) return;                      // ยอดฝากเท่านั้น
-    const opt = res.L[idx] ? 0 : res.M[idx] ? 1 : res.N[idx] ? 2 : res.O[idx] ? 3 : -1;
+    const opt = optOf(res, idx);
     if (opt < 0) return;
-    cutItems.push({ i: idx, opt, sub: opt === 2 ? res.N[idx] : '', ex: false, amt: g });
+    cutItems.push({ i: idx, opt, sub: optSub(res, idx, opt), ex: false, amt: g });
   });
   (res.savedList || []).forEach(sv => {
     const g = typeof rows[sv.i][cols.d] === 'number' ? rows[sv.i][cols.d] : 0;
@@ -2153,45 +2603,78 @@ function buildWorkbook(ExcelJS, table, settings) {
   cutItems.forEach(it => {
     cr++;
     const r0 = rows[it.i], d0 = r0[cols.dt];
+    let sub = it.sub;
+    if (it.opt === 0 && pairOf.has(it.i)) { const p = pairOf.get(it.i); sub = `${p.label} · จาก ${p.from}${p.dd ? ` · ห่าง ${p.dd} วัน` : ''}`; }
     const why = it.ex ? 'ยกเว้นไม่ตัด (' + OPT_LABEL[it.opt].replace(':', ' -') + ')'
-      : OPT_LABEL[it.opt] + (it.sub ? ' (' + it.sub + ')' : '');
+      : OPT_LABEL[it.opt] + (sub ? ' (' + sub + ')' : '');
     if (it.ex) cutX += it.amt; else cutD += it.amt;
     const vals = [it.i + 2, d0 instanceof Date ? TH_MONTH[d0.getUTCMonth()] + ' ' + d0.getUTCFullYear() : '',
-      d0 instanceof Date ? d0 : null, cols.time >= 0 ? r0[cols.time] : null, why,
-      cols.type >= 0 ? r0[cols.type] : null, cols.detail >= 0 ? r0[cols.detail] : null,
-      it.ex ? null : it.amt, it.ex ? it.amt : null];
+      d0 instanceof Date ? d0 : null, cols.time >= 0 ? r0[cols.time] : null, why];
+    if (multi) vals.push(cols.bank >= 0 ? r0[cols.bank] : null);
+    vals.push(cols.type >= 0 ? r0[cols.type] : null, cols.detail >= 0 ? r0[cols.detail] : null, it.ex ? null : it.amt, it.ex ? it.amt : null);
     vals.forEach((v, i) => {
       const cc = cw.getCell(cr, i + 1);
       if (v != null) cc.value = v;
       cc.font = font();
       if (i === 2 && v instanceof Date) { cc.numFmt = 'dd/mm/yyyy'; cc.alignment = { horizontal: 'center' }; }
       if (i === 0 || i === 3) cc.alignment = { horizontal: 'center' };
-      if (i === 7 || i === 8) cc.numFmt = NUM;
+      if (i === AMT_I || i === AMT_I + 1) cc.numFmt = NUM;
       if (i === 4) { cc.fill = solid(it.ex ? COLORS.ex : OPT_FILL[it.opt]); cc.alignment = { wrapText: true, vertical: 'middle' }; }
     });
   });
+  const cL = colLetter(AMT_I + 1), cX = colLetter(AMT_I + 2);
   if (cr === 1) {
     cw.getCell(2, 1).value = 'ไม่มียอดฝากที่ถูกตัดตามค่าที่ตั้งไว้'; cw.getCell(2, 1).font = font({ italic: true, color: COLORS.hint });
   } else {
     const tr0 = cr + 1;
-    cw.getCell(tr0, 7).value = 'รวม';
-    cw.getCell(tr0, 8).value = { formula: `SUM(H2:H${cr})`, result: cutD };
-    cw.getCell(tr0, 9).value = { formula: `SUM(I2:I${cr})`, result: cutX };
-    for (const i of [7, 8, 9]) {
+    cw.getCell(tr0, AMT_I).value = 'รวม';
+    cw.getCell(tr0, AMT_I + 1).value = { formula: `SUM(${cL}2:${cL}${cr})`, result: cutD };
+    cw.getCell(tr0, AMT_I + 2).value = { formula: `SUM(${cX}2:${cX}${cr})`, result: cutX };
+    for (const i of [AMT_I, AMT_I + 1, AMT_I + 2]) {
       const cc = cw.getCell(tr0, i);
       cc.font = font({ bold: true }); cc.fill = solid(COLORS.tot);
-      if (i > 7) cc.numFmt = NUM;
+      if (i > AMT_I) cc.numFmt = NUM;
     }
-    cw.autoFilter = `A1:I${cr}`;
+    cw.autoFilter = `A1:${cX}${cr}`;
+  }
+
+  /* ===== Inter-account transfer pairs sheet ===== */
+  if (xw) {
+    const xh = [['คู่', 9], ['วันที่ถอน', 12], ['เวลา', 8], ['ถอนจากบัญชี', 38], ['วันที่ฝาก', 12], ['เวลา', 8], ['ฝากเข้าบัญชี', 38],
+      ['ยอดเงิน (บาท)', 16], ['ห่าง (วัน)', 10], ['รายละเอียดฝั่งถอน', 44], ['รายละเอียดฝั่งฝาก', 44], ['แถวถอน', 10], ['แถวฝาก', 10]];
+    xh.forEach(([h, w], i) => { const c = xw.getCell(1, i + 1); c.value = h; c.font = font({ bold: true, color: 'FFFFFFFF' }); c.fill = solid('FF2E8B74');
+      c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; xw.getColumn(i + 1).width = w; });
+    xw.getRow(1).height = 30;
+    let xr = 1, xs = 0;
+    res.allPairs.forEach(p => {
+      xr++; xs += p.amt;
+      const rw = rows[p.w], rd = rows[p.d];
+      const v = [p.label, rw[cols.dt], cols.time >= 0 ? rw[cols.time] : null, p.from, rd[cols.dt], cols.time >= 0 ? rd[cols.time] : null, p.to,
+        p.amt, p.dd, cols.detail >= 0 ? rw[cols.detail] : null, cols.detail >= 0 ? rd[cols.detail] : null, p.w + 2, p.d + 2];
+      v.forEach((x, i) => { const c = xw.getCell(xr, i + 1); if (x != null) c.value = x; c.font = font();
+        if (x instanceof Date) { c.numFmt = 'dd/mm/yyyy'; c.alignment = { horizontal: 'center' }; }
+        if (i === 7) c.numFmt = NUM; if ([0, 2, 5, 8, 11, 12].includes(i)) c.alignment = { horizontal: 'center' };
+        c.fill = solid(xr % 2 ? COLORS.band2 : COLORS.white); });
+    });
+    if (xr === 1) { xw.getCell(2, 1).value = `ไม่พบยอดโอนระหว่างบัญชี (ยอดเท่ากัน วันที่ห่างไม่เกิน ${res.xferDays} วัน)`; xw.getCell(2, 1).font = font({ italic: true, color: COLORS.hint }); }
+    else {
+      const t = xr + 1; xw.getCell(t, 7).value = 'รวม ' + res.allPairs.length + ' คู่'; xw.getCell(t, 8).value = { formula: `SUM(H2:H${xr})`, result: xs };
+      for (const i of [7, 8]) { const c = xw.getCell(t, i); c.font = font({ bold: true }); c.fill = solid(COLORS.tot); if (i === 8) c.numFmt = NUM; }
+      xw.autoFilter = `A1:M${xr}`;
+    }
+    xw.getCell(xr + 3, 1).value = `บัญชีในไฟล์: ${res.accounts.join('  |  ')}`;
+    xw.getCell(xr + 3, 1).font = font({ size: 11, color: COLORS.hint });
+    xw.getCell(xr + 4, 1).value = `จับคู่ถอนจากบัญชีหนึ่งกับฝากเข้าอีกบัญชีของเรา ยอดเท่ากัน วันที่ห่างกันไม่เกิน ${res.xferDays} วัน (แต่ละรายการใช้ได้คู่เดียว เลือกคู่ที่วันและเวลาใกล้กันที่สุดก่อน) — คำนวณตอนสร้างไฟล์`;
+    xw.getCell(xr + 4, 1).font = font({ size: 11, color: COLORS.hint });
   }
 
   /* ===== Tool sheet ===== */
   const T = (a, v, o = {}) => { const c = tw.getCell(a); if (v !== undefined) c.value = v; if (o.font) c.font = font(o.font); if (o.fill) c.fill = solid(o.fill);
     if (o.align) c.alignment = o.align; if (o.border) c.border = o.border; if (o.numFmt) c.numFmt = o.numFmt; return c; };
   const rng = col => `Transactions!$${col}$2:$${col}$${last}`;
-  const TA = rng(A), TG = rng(G), TL = rng(HL), TM = rng(HM), TN = rng(HN), TO = rng(HO), TP = rng(HP);
-  [2, 38, 17, 17, 17, 17, 17, 17, 2].forEach((w, i) => { tw.getColumn(i + 1).width = w; });
-  const band = (row, text) => { for (const col of 'BCDEFGH') T(col + row, undefined, { fill: COLORS.navy });
+  const TA = rng(A), TG = rng(G), TT = rng(HT), TL = rng(HL), TM = rng(HM), TN = rng(HN), TO = rng(HO), TP = rng(HP);
+  [2, 38, 17, 17, 17, 17, 17, 17, 17, 2].forEach((w, i) => { tw.getColumn(i + 1).width = w; });
+  const band = (row, text) => { for (const col of 'BCDEFGHI') T(col + row, undefined, { fill: COLORS.navy });
     T('B' + row, text, { font: { size: 13, bold: true, color: 'FFFFFFFF' }, align: { vertical: 'middle', indent: 1 } }); tw.getRow(row).height = 24; };
   const hint = (a, text) => T(a, text, { font: { size: 11, italic: true, color: COLORS.hint }, align: { vertical: 'middle' } });
   const label = (a, text, bold = false, indent = 0) => T(a, text, { font: { bold }, align: { vertical: 'middle', indent } });
@@ -2205,25 +2688,34 @@ function buildWorkbook(ExcelJS, table, settings) {
   T('B2', 'สรุปยอดฝาก & เครื่องมือตัดรายการ Statement', { font: { size: 18, bold: true, color: COLORS.navy } });
   T('B3', F2(`"ข้อมูลวันที่ "&DAY(MIN(${TA}))&"/"&MONTH(MIN(${TA}))&"/"&YEAR(MIN(${TA}))&" ถึง "&DAY(MAX(${TA}))&"/"&MONTH(MAX(${TA}))&"/"&YEAR(MAX(${TA}))&"   |   ทั้งหมด "&COUNT(${TA})&" รายการ   |   ช่องสีเหลือง = ช่องให้กรอก"`,
     `ข้อมูลวันที่ ${dmy(res.minD)} ถึง ${dmy(res.maxD)}   |   ทั้งหมด ${res.dateCount} รายการ   |   ช่องสีเหลือง = ช่องให้กรอก`), { font: { size: 11, color: COLORS.hint } });
+  if (multi) hint('B4', `บัญชีในไฟล์ ${res.accounts.length} บัญชี: ${res.accounts.join('  |  ')}`);
 
   band(5, '1)  ตั้งค่าการตัดรายการ');
-  label('B6', 'ตัวเลือก 1: ตัดยอดถอน/ฝากที่ซ้ำกัน', true);
-  T('C6', 'ทำงานอัตโนมัติ', { font: { bold: true, color: COLORS.green } });
-  hint('D6', 'จับคู่ถอน 1 รายการ กับฝาก 1 รายการ ที่ยอดเท่ากันในวันเดียวกัน');
+  label('B6', 'ตัวเลือก 1: ตัดยอดโอนระหว่างบัญชีตัวเอง', true);
+  inp('C6', multi && res.xferOn ? 'ใช่' : 'ไม่');
+  tw.getCell('C6').dataValidation = { type: 'list', allowBlank: false, showErrorMessage: true, formulae: ['"ใช่,ไม่"'] };
+  hint('D6', multi ? `← ใช่/ไม่ · จับคู่ถอนบัญชีหนึ่ง กับฝากอีกบัญชี ยอดเท่ากัน ห่างกันไม่เกิน ${res.xferDays} วัน · พบ ${res.allPairs.length} คู่ (ดูชีต "${XFERS}")`
+    : '← ใช้ได้เมื่อไฟล์มีตั้งแต่ 2 บัญชีขึ้นไป (นำเข้าหลายไฟล์/หลายบัญชีพร้อมกัน)');
+  label('B7', 'ตัวเลือก 2: ตัดยอดถอน/ฝากที่ซ้ำกัน', true);
+  T('C7', 'ทำงานอัตโนมัติ', { font: { bold: true, color: COLORS.green } });
+  hint('D7', 'จับคู่ถอน 1 รายการ กับฝาก 1 รายการ ที่ยอดเท่ากันในวันเดียวกัน');
 
-  label('B8', 'ตัวเลือก 2: ชื่อที่ต้องการตัดยอดฝาก', true);
+  label('B8', 'ตัวเลือก 3: ชื่อที่ต้องการตัดยอดฝาก', true);
   hint('C8', E ? 'ค้นหาในรายละเอียด (Column ' + E + ') พิมพ์บางส่วนของชื่อได้ ใส่ได้สูงสุด 10 ชื่อ' : 'ไม่พบคอลัมน์รายละเอียดในไฟล์ ตัวเลือกนี้จึงไม่ทำงาน');
   label('B9', 'ชื่อที่ 1 – 5', false, 2); label('B10', 'ชื่อที่ 6 – 10', false, 2);
   'CDEFG'.split('').forEach((col, i) => { inp(col + '9', res.names[i]); inp(col + '10', res.names[i + 5]); });
   tw.getRow(9).height = 20; tw.getRow(10).height = 20;
 
-  label('B12', 'ตัวเลือก 3: ตัดยอดฝากตามจำนวนเงิน', true);
+  label('B12', 'ตัวเลือก 4: ตัดยอดฝากตามจำนวนเงิน', true);
   label('B13', 'ตัดยอดฝากที่ มากกว่า (บาท)', false, 2); inp('C13', res.gt, '#,##0.00'); hint('D13', '← เว้นว่าง = ไม่ตัด');
   label('B14', 'ตัดยอดฝากที่ น้อยกว่า (บาท)', false, 2); inp('C14', res.lt, '#,##0.00'); hint('D14', '← เว้นว่าง = ไม่ตัด');
+  label('B15', 'ตัดยอดฝากที่ ลงท้ายด้วย 0 (จำนวนหลัก)', false, 2); inp('C15', res.zeros, '0'); hint('D15', '← ใส่ 1–6 เช่น 3 = ตัดยอดที่ลงท้าย 000 (เต็มบาท) · เว้นว่าง = ไม่ตัด');
+  tw.getCell('C15').dataValidation = { type: 'whole', operator: 'between', allowBlank: true, showErrorMessage: true,
+    errorTitle: 'จำนวนหลักไม่ถูกต้อง', error: 'ใส่จำนวนหลัก 1 ถึง 9', formulae: [1, 9] };
   for (const a of ['C13', 'C14']) tw.getCell(a).dataValidation = { type: 'decimal', operator: 'greaterThanOrEqual', allowBlank: true,
     showErrorMessage: true, errorTitle: 'ตัวเลขไม่ถูกต้อง', error: 'กรุณาใส่ตัวเลขตั้งแต่ 0 ขึ้นไป', formulae: [0] };
 
-  label('B16', 'ตัวเลือก 4: ตัดยอดฝากตามประเภท/ช่องทาง', true);
+  label('B16', 'ตัวเลือก 5: ตัดยอดฝากตามประเภท/ช่องทาง', true);
   hint('C16', res.kb ? 'กสิกร: เลือกได้จากทั้งช่องรายการและช่องทาง หรือพิมพ์คำเองในแถวถัดไป (ค้นแบบมีคำนี้อยู่)' : C ? 'เลือกจากรายการ Column ' + C + ' (ประเภท/ช่องทาง) ได้หลายประเภท ช่องละ 1 ประเภท' : 'ไม่พบคอลัมน์ประเภท/ช่องทางในไฟล์ ตัวเลือกนี้จึงไม่ทำงาน');
   label('B17', 'ประเภท/ช่องทาง', false, 2);
   let list = []; let len = 2;
@@ -2253,15 +2745,17 @@ function buildWorkbook(ExcelJS, table, settings) {
     if (exList.length) tw.getCell(col + '22').dataValidation = { type: 'list', allowBlank: true, showErrorMessage: false, formulae: ['"' + exList.join(',') + '"'] };
   });
   [20, 21, 22].forEach(rr => { tw.getRow(rr).height = 20; });
-  for (let c = 9; c <= 2 + Math.max(nT, nX, res.kb ? nW : 0); c++) tw.getColumn(c).width = 17;   // extra type cells beyond column H
+  for (let c = 10; c <= 2 + Math.max(nT, nX, res.kb ? nW : 0); c++) tw.getColumn(c).width = 17;   // extra type cells beyond column I
 
   band(24, '2)  สรุปรายการที่ถูกตัด');
   header(25, [['B', 'ตัวเลือก'], ['C', 'จำนวนแถว'], ['D', 'ยอดฝากที่ตัด (บาท)'], ['E', 'สีในชีต Transactions']]);
+  const nb = `,${TT},""`;   // ไม่นับแถวที่เป็นคู่โอนระหว่างบัญชีซ้ำในตัวเลือกถัดไป
   const sumRows = [
-    ['ตัวเลือก 1: ซ้ำ ถอน/ฝาก', `COUNTIF(${TL},"ซ้ำ")`, `SUMIFS(${TG},${TL},"ซ้ำ")`, COLORS.o1, 'สีเหลือง'],
-    ['ตัวเลือก 2: ตรงชื่อ', `COUNTIFS(${TM},"ตรง",${TL},"<>ซ้ำ")`, `SUMIFS(${TG},${TM},"ตรง",${TL},"<>ซ้ำ")`, COLORS.o2, 'สีส้ม'],
-    ['ตัวเลือก 3: ตามยอดเงิน', `COUNTIFS(${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง")`, `SUMIFS(${TG},${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง")`, COLORS.o3, 'สีฟ้า'],
-    ['ตัวเลือก 4: ประเภท/ช่องทาง', `COUNTIFS(${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},"")`, `SUMIFS(${TG},${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},"")`, COLORS.o4, 'สีม่วง'],
+    ['ตัวเลือก 1: โอนระหว่างบัญชี', `COUNTIF(${TT},"?*")`, `SUMIFS(${TG},${TT},"?*")`, COLORS.o0, 'สีเขียว'],
+    ['ตัวเลือก 2: ซ้ำ ถอน/ฝาก', `COUNTIF(${TL},"ซ้ำ")`, `SUMIFS(${TG},${TL},"ซ้ำ")`, COLORS.o1, 'สีเหลือง'],
+    ['ตัวเลือก 3: ตรงชื่อ', `COUNTIFS(${TM},"ตรง",${TL},"<>ซ้ำ"${nb})`, `SUMIFS(${TG},${TM},"ตรง",${TL},"<>ซ้ำ"${nb})`, COLORS.o2, 'สีส้ม'],
+    ['ตัวเลือก 4: ตามยอดเงิน', `COUNTIFS(${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง"${nb})`, `SUMIFS(${TG},${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง"${nb})`, COLORS.o3, 'สีฟ้า'],
+    ['ตัวเลือก 5: ประเภท/ช่องทาง', `COUNTIFS(${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},""${nb})`, `SUMIFS(${TG},${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},""${nb})`, COLORS.o4, 'สีม่วง'],
   ];
   sumRows.forEach(([name, cnt, amt, color, cname], i) => {
     const r = 26 + i;
@@ -2271,19 +2765,19 @@ function buildWorkbook(ExcelJS, table, settings) {
     T('E' + r, cname, { font: {}, border: box, fill: color, align: { horizontal: 'center' } });
   });
   const totCnt = res.summary.reduce((a, s) => a + s[0], 0), totAmt = res.summary.reduce((a, s) => a + s[1], 0);
-  T('B30', 'รวม', { font: { bold: true }, fill: COLORS.tot, border: box, align: { indent: 1 } });
-  T('C30', F2('SUM(C26:C29)', totCnt), { font: { bold: true }, fill: COLORS.tot, border: box, align: { horizontal: 'center' }, numFmt: '#,##0' });
-  T('D30', F2('SUM(D26:D29)', totAmt), { font: { bold: true }, fill: COLORS.tot, border: box, numFmt: NUM });
-  T('B31', 'ยกเว้นไม่ตัด', { font: {}, border: box, align: { indent: 1 } });
-  T('C31', F2(`COUNTIF(${TP},"ยกเว้น")`, res.X.filter(Boolean).length), { font: {}, border: box, align: { horizontal: 'center' }, numFmt: '#,##0;-#,##0;"-"' });
-  T('D31', F2(`SUMIFS(${TG},${TP},"ยกเว้น")`, rows.reduce((a, r0, i0) => a + (res.X[i0] ? numOr0(r0[cols.d]) : 0), 0)), { font: {}, border: box, numFmt: NUM });
-  T('E31', 'สีเทา', { font: {}, border: box, fill: COLORS.ex, align: { horizontal: 'center' } });
-  hint('B32', '* ตัวเลือก 1 นับทั้งแถวถอนและแถวฝาก  |  แถวที่ตรงหลายตัวเลือก นับในตัวเลือกแรกที่ตรงเท่านั้น  |  แถวที่ยกเว้นจะไม่ถูกตัดทุกกรณี');
+  T('B31', 'รวม', { font: { bold: true }, fill: COLORS.tot, border: box, align: { indent: 1 } });
+  T('C31', F2('SUM(C26:C30)', totCnt), { font: { bold: true }, fill: COLORS.tot, border: box, align: { horizontal: 'center' }, numFmt: '#,##0' });
+  T('D31', F2('SUM(D26:D30)', totAmt), { font: { bold: true }, fill: COLORS.tot, border: box, numFmt: NUM });
+  T('B32', 'ยกเว้นไม่ตัด', { font: {}, border: box, align: { indent: 1 } });
+  T('C32', F2(`COUNTIF(${TP},"ยกเว้น")`, res.X.filter(Boolean).length), { font: {}, border: box, align: { horizontal: 'center' }, numFmt: '#,##0;-#,##0;"-"' });
+  T('D32', F2(`SUMIFS(${TG},${TP},"ยกเว้น")`, rows.reduce((a, r0, i0) => a + (res.X[i0] ? numOr0(r0[cols.d]) : 0), 0)), { font: {}, border: box, numFmt: NUM });
+  T('E32', 'สีเทา', { font: {}, border: box, fill: COLORS.ex, align: { horizontal: 'center' } });
+  hint('B33', '* ตัวเลือก 1 และ 2 นับทั้งแถวถอนและแถวฝาก  |  แถวที่ตรงหลายตัวเลือก นับในตัวเลือกแรกที่ตรงเท่านั้น  |  แถวที่ยกเว้นจะไม่ถูกตัดทุกกรณี');
 
-  band(34, '3)  ยอดฝากรายเดือน (หักรายการที่ตัดออก)');
-  header(35, [['B', 'เดือน'], ['C', 'ยอดฝากทั้งหมด'], ['D', 'หัก ตัวเลือก 1\nซ้ำ ถอน/ฝาก'], ['E', 'หัก ตัวเลือก 2\nตรงชื่อ'],
-    ['F', 'หัก ตัวเลือก 3\nตามยอดเงิน'], ['G', 'หัก ตัวเลือก 4\nประเภท/ช่องทาง'], ['H', 'ยอดฝากสุทธิ']], 36);
-  const START = 36;
+  band(35, '3)  ยอดฝากรายเดือน (หักรายการที่ตัดออก)');
+  header(36, [['B', 'เดือน'], ['C', 'ยอดฝากทั้งหมด'], ['D', 'หัก ตัวเลือก 1\nโอนระหว่างบัญชี'], ['E', 'หัก ตัวเลือก 2\nซ้ำ ถอน/ฝาก'], ['F', 'หัก ตัวเลือก 3\nตรงชื่อ'],
+    ['G', 'หัก ตัวเลือก 4\nตามยอดเงิน'], ['H', 'หัก ตัวเลือก 5\nประเภท/ช่องทาง'], ['I', 'ยอดฝากสุทธิ']], 36);
+  const START = 37;
   res.months.forEach((mo, i) => {
     const r = START + i;
     const mSerial = Date.UTC(mo.y, mo.m, 1) / 86400000 + 25569;
@@ -2293,40 +2787,96 @@ function buildWorkbook(ExcelJS, table, settings) {
       Object.assign({}, base, { numFmt: '[$-41E]mmmm yyyy', align: { horizontal: 'left', indent: 1 } }));
     const m = `${TA},">="&$B${r},${TA},"<"&DATE(YEAR($B${r}),MONTH($B${r})+1,1)`;
     T('C' + r, F2(`SUMIFS(${TG},${m})`, mo.total), Object.assign({}, base, { numFmt: NUM }));
-    T('D' + r, F2(`-SUMIFS(${TG},${m},${TL},"ซ้ำ")`, -mo.d[0]), Object.assign({}, base, { numFmt: NEG }));
-    T('E' + r, F2(`-SUMIFS(${TG},${m},${TM},"ตรง",${TL},"<>ซ้ำ")`, -mo.d[1]), Object.assign({}, base, { numFmt: NEG }));
-    T('F' + r, F2(`-SUMIFS(${TG},${m},${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง")`, -mo.d[2]), Object.assign({}, base, { numFmt: NEG }));
-    T('G' + r, F2(`-SUMIFS(${TG},${m},${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},"")`, -mo.d[3]), Object.assign({}, base, { numFmt: NEG }));
-    T('H' + r, F2(`SUM(C${r}:G${r})`, mo.net), { border: box, fill: COLORS.net, font: { bold: true }, numFmt: NUM });
+    T('D' + r, F2(`-SUMIFS(${TG},${m},${TT},"?*")`, -mo.d[0]), Object.assign({}, base, { numFmt: NEG }));
+    T('E' + r, F2(`-SUMIFS(${TG},${m},${TL},"ซ้ำ")`, -mo.d[1]), Object.assign({}, base, { numFmt: NEG }));
+    T('F' + r, F2(`-SUMIFS(${TG},${m},${TM},"ตรง",${TL},"<>ซ้ำ"${nb})`, -mo.d[2]), Object.assign({}, base, { numFmt: NEG }));
+    T('G' + r, F2(`-SUMIFS(${TG},${m},${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง"${nb})`, -mo.d[3]), Object.assign({}, base, { numFmt: NEG }));
+    T('H' + r, F2(`-SUMIFS(${TG},${m},${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},""${nb})`, -mo.d[4]), Object.assign({}, base, { numFmt: NEG }));
+    T('I' + r, F2(`SUM(C${r}:H${r})`, mo.net), { border: box, fill: COLORS.net, font: { bold: true }, numFmt: NUM });
     tw.getRow(r).height = 20;
   });
   const TR = START + Math.max(res.months.length, 1);
   const totBorder = { left: side(), right: side(), top: side('medium', COLORS.navy), bottom: side('medium', COLORS.navy) };
   T('B' + TR, 'รวมทั้งหมด', { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: totBorder, align: { indent: 1 } });
   const sumOf = f => res.months.reduce((a, mo) => a + f(mo), 0);
-  const totals = { C: sumOf(m => m.total), D: -sumOf(m => m.d[0]), E: -sumOf(m => m.d[1]), F: -sumOf(m => m.d[2]), G: -sumOf(m => m.d[3]), H: sumOf(m => m.net) };
-  for (const col of 'CDEFGH') T(col + TR, F2(`SUM(${col}${START}:${col}${TR - 1})`, totals[col]),
-    { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: totBorder, numFmt: 'DEFG'.includes(col) ? NEG : NUM });
+  const totals = { C: sumOf(m => m.total), D: -sumOf(m => m.d[0]), E: -sumOf(m => m.d[1]), F: -sumOf(m => m.d[2]), G: -sumOf(m => m.d[3]), H: -sumOf(m => m.d[4]), I: sumOf(m => m.net) };
+  for (const col of 'CDEFGHI') T(col + TR, F2(`SUM(${col}${START}:${col}${TR - 1})`, totals[col]),
+    { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: totBorder, numFmt: 'DEFGH'.includes(col) ? NEG : NUM });
   tw.getRow(TR).height = 22;
 
   let r = TR + 2;
   band(r, '4)  วิธีลบรายการจริง และหมายเหตุ');
   [
-    `1.  ไปที่ชีต Transactions กดปุ่มตัวกรองที่หัว Column ${HL} (ตัวเลือก 1) แล้วเลือก "ซ้ำ"`,
+    `1.  ไปที่ชีต Transactions กดปุ่มตัวกรองที่หัว Column ${HT} (ตัวเลือก 1) แล้วเลือกทุกค่าที่ไม่ว่าง ("คู่ …")`,
     '2.  ตรวจรายการที่ไฮไลต์ เลือกแถวที่เห็นทั้งหมด (ไม่รวมหัวตาราง) > คลิกขวา > Delete Row > Clear Filter',
-    `3.  ทำซ้ำกับ Column ${HM} (เลือก "ตรง"), Column ${HN} (เลือก "มากกว่า" / "น้อยกว่า") และ Column ${HO} (เลือก "ตรงประเภท")`,
+    `3.  ทำซ้ำกับ Column ${HL} (เลือก "ซ้ำ"), Column ${HM} (เลือก "ตรง"), Column ${HN} (เลือก "มากกว่า" / "น้อยกว่า" / "ลงท้าย 0…") และ Column ${HO} (เลือก "ตรงประเภท")`,
     `•  Column ${HP} = "ยกเว้น" คือแถวที่ตั้งค่าไว้ไม่ให้ตัด แถวเหล่านี้จะไม่ถูกเลือกในทุกตัวเลือก`,
+    multi ? `•  คู่โอนระหว่างบัญชี (Column ${HT}) จับคู่ตอนสร้างไฟล์ — เปลี่ยน C6 เป็น "ไม่" เพื่อไม่ตัด แล้วรายการเหล่านี้จะกลับไปตรวจในตัวเลือกอื่นตามปกติ`
+      : '•  ตัวเลือก 1 (โอนระหว่างบัญชี) ใช้เมื่อนำเข้า Statement ตั้งแต่ 2 บัญชีพร้อมกัน',
     '•  หลังลบแถวจริง ยอดฝากสุทธิจะเท่าเดิม และช่อง "หัก" จะกลายเป็น 0',
     '•  คอลัมน์คงเหลือเป็นตัวเลขจากธนาคาร จะไม่คำนวณใหม่หลังลบแถว  |  ควรสำรองไฟล์ก่อนลบ',
-    `•  ชีต "${CUTS}" คือรายการทั้งหมดที่ถูกตัด ตามค่าที่ตั้งไว้ตอนสร้างไฟล์ ถ้าแก้ค่าในชีตนี้ ให้ดูผลใหม่จาก Column ${HL}-${HO} ในชีต Transactions`,
+    `•  ชีต "${CUTS}" คือรายการทั้งหมดที่ถูกตัด ตามค่าที่ตั้งไว้ตอนสร้างไฟล์ ถ้าแก้ค่าในชีตนี้ ให้ดูผลใหม่จาก Column ${HT}-${HO} ในชีต Transactions`,
   ].forEach(t => { r++; label('B' + r, t, false, 1); });
+
+  /* ===== Per-account summary sheet ===== */
+  if (aw) {
+    const BK = colLetter(cols.bank + 1), TB = rng(BK);
+    const OPT_CRIT = [`${TT},"?*"`, `${TL},"ซ้ำ"`, `${TM},"ตรง",${TL},"<>ซ้ำ"${nb}`, `${TN},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง"${nb}`,
+      `${TO},"?*",${TL},"<>ซ้ำ",${TM},"<>ตรง",${TN},""${nb}`];
+    const A2 = (a, v, o = {}) => { const c = aw.getCell(a); if (v !== undefined) c.value = v; c.font = font(o.font || {}); if (o.fill) c.fill = solid(o.fill);
+      if (o.align) c.alignment = o.align; if (o.border) c.border = o.border; if (o.numFmt) c.numFmt = o.numFmt; return c; };
+    [2, 46, 17, 17, 17, 17, 17, 17, 17, 2].forEach((w, i) => { aw.getColumn(i + 1).width = w; });
+    const hdr = (row, first) => { [['B', first], ['C', 'ยอดฝากทั้งหมด'], ['D', 'หัก ตัวเลือก 1\nโอนระหว่างบัญชี'], ['E', 'หัก ตัวเลือก 2\nซ้ำ ถอน/ฝาก'], ['F', 'หัก ตัวเลือก 3\nตรงชื่อ'],
+      ['G', 'หัก ตัวเลือก 4\nตามยอดเงิน'], ['H', 'หัก ตัวเลือก 5\nประเภท/ช่องทาง'], ['I', 'ยอดฝากสุทธิ']].forEach(([c, t]) =>
+      A2(c + row, t, { font: { bold: true, color: COLORS.navy }, fill: COLORS.hdr, border: box, align: { horizontal: 'center', vertical: 'middle', wrapText: true } }));
+      aw.getRow(row).height = 36; };
+    const line = (row, labelV, crit, o, bg, bold) => {
+      const st = x => Object.assign({ border: box, fill: bg, font: { bold } }, x);
+      A2('B' + row, labelV, st({ align: { indent: 1, vertical: 'middle', wrapText: true } }));
+      A2('C' + row, F2(`SUMIFS(${TG}${crit})`, o.total), st({ numFmt: NUM }));
+      'DEFGH'.split('').forEach((col, k) => A2(col + row, F2(`-SUMIFS(${TG}${crit},${OPT_CRIT[k]})`, -o.d[k]), st({ numFmt: NEG })));
+      A2('I' + row, F2(`SUM(C${row}:H${row})`, o.net), { border: box, fill: COLORS.net, font: { bold: true }, numFmt: NUM });
+    };
+    A2('B2', 'สรุปยอดฝากแยกตามบัญชี', { font: { size: 18, bold: true, color: COLORS.navy } });
+    A2('B3', `${res.accounts.length} บัญชี · ตัดยอดตามค่าที่ตั้งในชีต "${TOOL}" (สูตรคำนวณใหม่อัตโนมัติ)`, { font: { size: 11, italic: true, color: COLORS.hint } });
+    hdr(5, 'บัญชี');
+    const accts = res.acctSummary.filter(a => a.acct);
+    accts.forEach((a, i) => line(6 + i, a.acct, `,${TB},$B${6 + i}`, a, i % 2 ? COLORS.band2 : COLORS.white, false));
+    const at = 6 + accts.length;
+    A2('B' + at, 'รวมทุกบัญชี', { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: box, align: { indent: 1 } });
+    for (const col of 'CDEFGHI') A2(col + at, F2(`SUM(${col}6:${col}${at - 1})`, col === 'C' ? accts.reduce((p, a) => p + a.total, 0)
+      : col === 'I' ? accts.reduce((p, a) => p + a.net, 0) : -accts.reduce((p, a) => p + a.d['DEFGH'.indexOf(col)], 0)),
+      { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: box, numFmt: 'DEFGH'.includes(col) ? NEG : NUM });
+    let ar = at + 3;
+    accts.forEach(a => {
+      for (const col of 'BCDEFGHI') A2(col + ar, undefined, { fill: COLORS.navy });
+      A2('B' + ar, a.acct, { font: { size: 13, bold: true, color: 'FFFFFFFF' }, fill: COLORS.navy, align: { vertical: 'middle', indent: 1 } });
+      aw.getRow(ar).height = 24;
+      const nameRow = ar; ar++;
+      hdr(ar, 'เดือน'); ar++;
+      const first = ar;
+      res.months.forEach((mo, i) => {
+        const o = (mo.acct && mo.acct[a.acct]) || { total: 0, d: OPT_KEYS.map(() => 0), net: 0 };
+        const mSerial = Date.UTC(mo.y, mo.m, 1) / 86400000 + 25569;
+        const bg = i % 2 ? COLORS.band2 : COLORS.white;
+        line(ar, undefined, `,${TB},$B$${nameRow},${TA},">="&$B${ar},${TA},"<"&DATE(YEAR($B${ar}),MONTH($B${ar})+1,1)`, o, bg, false);
+        A2('B' + ar, F2(`${TQ}!B${START + i}`, mSerial), { border: box, fill: bg, numFmt: '[$-41E]mmmm yyyy', align: { horizontal: 'left', indent: 1 } });
+        ar++;
+      });
+      A2('B' + ar, 'รวม', { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: box, align: { indent: 1 } });
+      for (const col of 'CDEFGHI') A2(col + ar, F2(`SUM(${col}${first}:${col}${ar - 1})`, col === 'C' ? a.total : col === 'I' ? a.net : -a.d['DEFGH'.indexOf(col)]),
+        { font: { bold: true, color: COLORS.navy }, fill: COLORS.tot, border: box, numFmt: 'DEFGH'.includes(col) ? NEG : NUM });
+      ar += 3;
+    });
+    aw.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+  }
 
   Object.assign(tw.pageSetup || (tw.pageSetup = {}), { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 });
   wb.views = [{ x: 0, y: 0, width: 20000, height: 12000, firstSheet: 0, activeTab: 0, visibility: 'visible' }];
   return { wb, res };
 }
 
-if (typeof module !== 'undefined') module.exports = { extractTable, compute, buildWorkbook, depositTypes, allTypes, colLetter };
+if (typeof module !== 'undefined') module.exports = { extractTable, compute, buildWorkbook, matchTransfers, depositTypes, allTypes, colLetter };
 
 </script>
 <script>
@@ -2338,7 +2888,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   const dmy = d => `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`;
   let table = null, fileBase = 'Statement', timer = null, lastRes = null, monthIdx = 0;
   const TH_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
-  const OPT = [['ซ้ำ ถอน/ฝาก', '--hl1'], ['ตามชื่อ', '--hl2'], ['ตามยอดเงิน', '--hl3'], ['ประเภท/ช่องทาง', '--hl4']];
+  const OPT = [['โอนระหว่างบัญชี', '--hl0'], ['ซ้ำ ถอน/ฝาก', '--hl1'], ['ตามชื่อ', '--hl2'], ['ตามยอดเงิน', '--hl3'], ['ประเภท/ช่องทาง', '--hl4']];
   const pad = n => String(n).padStart(2, '0');
   const TITLES = /^(นาย|นางสาว|น\.ส\.|นาง|ด\.ช\.|ด\.ญ\.|บจก\.|บมจ\.|หจก\.|บริษัท|ห้างหุ้นส่วน|MR\.?|MRS\.?|MISS|MS\.?)\s*/i;
   function party(detail) {
@@ -2406,7 +2956,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     rows.forEach((r, i) => {
       const d = r[cols.dt];
       if (flow.month !== 'all' && !(d instanceof Date && d.getUTCFullYear() * 12 + d.getUTCMonth() === +flow.month)) return;
-      if (flow.excludeCut && res && (res.L[i] || res.M[i] || res.N[i] || res.O[i])) return;
+      if (flow.excludeCut && res && optOf(res, i) >= 0) return;
       const g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0;
       if (g <= 0 && w <= 0) return;
       const p = cols.detail >= 0 ? party(r[cols.detail]) : null;
@@ -2856,7 +3406,38 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     const fn = $('dlname'); if (!fn.dataset.touched) fn.value = fileBase + '_Cleanup';
     update();
   }
-  window.__cut = { load: loadTable };
+  window.__cut = { load: loadTable, apply: applySettings };
+  /* ใส่ค่าที่อ่านจากไฟล์ Excel ที่ตัดแล้ว ลงในหน้าตั้งค่า */
+  function applySettings(st) {
+    if (!st || !table) return;
+    const norm = v => String(v).replace(/[",]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+    $('names').value = (st.names || []).join('\n');
+    $('exnames').value = (st.exNames || []).join('\n');
+    $('gt').value = st.gt != null ? st.gt : '';
+    $('lt').value = st.lt != null ? st.lt : '';
+    const zs = $('zeros');
+    if (st.zeros && ![...zs.options].some(o => o.value === String(st.zeros))) { const o = document.createElement('option'); o.value = String(st.zeros); o.textContent = `${st.zeros} หลัก — ลงท้าย ${'0'.repeat(st.zeros)}`; zs.append(o); }
+    zs.value = st.zeros ? String(st.zeros) : '';
+    if (!$('typeWordBox').hidden) $('typewords').value = (st.typeWords || []).join('\n');
+    else if ((st.typeWords || []).length) { $('typeWordBox').hidden = false; $('typewords').value = st.typeWords.join('\n'); }
+    const setChecks = (boxId, list) => {
+      const box = $(boxId), want = (list || []).map(norm);
+      const cbs = [...box.querySelectorAll('input')];
+      cbs.forEach(c => { c.checked = want.includes(norm(c.value)); });
+      (list || []).forEach(v => {
+        if (cbs.some(c => norm(c.value) === norm(v))) return;      // ค่าที่ไม่อยู่ในรายการปัจจุบัน → เพิ่มเป็นตัวเลือกให้
+        const lab = document.createElement('label'); const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = v; cb.checked = true;
+        const sp = document.createElement('span'); sp.textContent = v; const i = document.createElement('i'); i.className = 'cnt'; i.textContent = ' จากไฟล์ Excel'; sp.append(i);
+        lab.append(cb, sp); box.append(lab);
+      });
+      box.dataset.ready = '1';
+      if (!box.onchange) box.onchange = () => update();
+    };
+    setChecks('types', st.types); setChecks('extypes', st.exTypes);
+    if (st.xfer !== undefined) $('xfer').checked = st.xfer;
+    if (st.xferDays !== undefined) { const xd = $('xferDays'); if (![...xd.options].some(o => o.value === String(st.xferDays))) { const o = document.createElement('option'); o.value = String(st.xferDays); o.textContent = `${st.xferDays} วัน`; xd.append(o); } xd.value = String(st.xferDays); }
+    update();
+  }
 
   function fillChecks(boxId, list, preset) {
     const box = $(boxId);
@@ -2911,15 +3492,36 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   function readSettings() {
     const num = id => { const v = $(id).value.trim(); return v === '' || isNaN(+v) ? null : Math.abs(+v); };
     const checked = id => [...$(id).querySelectorAll('input:checked')].map(c => c.value);
-    return { names: readNames('names', 'ncount'), gt: num('gt'), lt: num('lt'), types: checked('types'),
+    return { names: readNames('names', 'ncount'), gt: num('gt'), lt: num('lt'), zeros: $('zeros').value ? +$('zeros').value : null, types: checked('types'),
       typeWords: $('typeWordBox').hidden ? [] : readNames('typewords', 'twcount'),
-      exNames: readNames('exnames', 'excount'), exTypes: checked('extypes') };
+      exNames: readNames('exnames', 'excount'), exTypes: checked('extypes'),
+      xfer: $('xfer').checked, xferDays: +$('xferDays').value || 0 };
+  }
+  function renderXfer(res) {
+    const multi = res.accounts.length > 1, rows = table.rows, cols = table.cols;
+    $('xfer').disabled = !multi; $('xferDays').disabled = !multi;
+    $('xferInfo').textContent = !multi ? 'ตอนนี้มีบัญชีเดียว — นำเข้า Statement บัญชีอื่นเพิ่มเพื่อใช้ตัวเลือกนี้'
+      : `${res.accounts.length} บัญชี · พบคู่โอน ${fmtInt(res.allPairs.length)} คู่ รวม ${fmt(res.allPairs.reduce((a, p) => a + p.amt, 0))} บาท` + (res.xferOn ? '' : ' (ปิดอยู่ ไม่ตัด)');
+    $('xferBox').hidden = !multi;
+    if (!multi) return;
+    $('xferSum').textContent = res.allPairs.length
+      ? `บัญชี: ${res.accounts.join('  |  ')} · ${fmtInt(res.allPairs.length)} คู่ รวม ${fmt(res.allPairs.reduce((a, p) => a + p.amt, 0))} บาท` + (res.xferOn ? ' · ตัดยอดฝากฝั่งปลายทางออก' : ' · ปิดอยู่ ยังไม่ตัด')
+      : `ไม่พบยอดโอนระหว่างบัญชี (ยอดเท่ากัน วันที่ห่างไม่เกิน ${res.xferDays} วัน) · บัญชี: ${res.accounts.join('  |  ')}`;
+    const tb = $('xferBody'); tb.textContent = '';
+    const dd = d => d instanceof Date ? `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}` : '';
+    const tm = i => cols.time >= 0 && rows[i][cols.time] ? ' ' + timeText(rows[i][cols.time]) : '';
+    res.allPairs.slice(0, 500).forEach(p => {
+      const tr = document.createElement('tr');
+      const cells = [p.label, dd(rows[p.w][cols.dt]) + tm(p.w), p.from, dd(rows[p.d][cols.dt]) + tm(p.d), p.to, fmt(p.amt), String(p.dd)];
+      cells.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k >= 1 && k <= 4) td.className = 'lft'; tr.append(td); });
+      tb.append(tr);
+    });
   }
 
   function update() {
     if (!table) return;
     const res = compute(table, readSettings());
-    const labels = [['ซ้ำ ถอน/ฝาก', '--hl1'], ['ตามชื่อ', '--hl2'], ['ตามยอดเงิน', '--hl3'], ['ประเภท/ช่องทาง', '--hl4']];
+    const labels = OPT;
     const sb = $('sumBody'); sb.textContent = '';
     res.summary.forEach(([c, a], i) => {
       const tr = document.createElement('tr');
@@ -2930,9 +3532,28 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     $('exnote').textContent = res.saved[0] ? `ยกเว้นไม่ตัด ${fmtInt(res.saved[0])} รายการ รวม ${fmt(res.saved[1])} บาท ซึ่งจะถูกตัดถ้าไม่ได้ตั้งค่ายกเว้นไว้` : '';
     $('sumCnt').textContent = fmtInt(res.summary.reduce((s, x) => s + x[0], 0));
     $('sumAmt').textContent = fmt(res.summary.reduce((s, x) => s + x[1], 0));
+    // ยอดแยกตามบัญชี
+    const accts = res.acctSummary.filter(a => a.acct), multiA = res.accounts.length > 1;
+    $('acctBox').hidden = !multiA; $('monAcctBar').hidden = !multiA;
+    const sel = $('monAcct'), prevA = sel.value;
+    sel.innerHTML = '<option value="">ทุกบัญชีรวมกัน</option>' + (multiA ? accts.map(a => `<option>${escH(a.acct)}</option>`).join('') : '');
+    sel.value = multiA && accts.some(a => a.acct === prevA) ? prevA : '';
+    const ab = $('acctBody'); ab.textContent = '';
+    if (multiA) {
+      const at = { t: 0, d: OPT.map(() => 0), net: 0 };
+      accts.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="pname"></td><td>${fmt(a.total)}</td>` + a.d.map(x => `<td class="neg">${fmt(-x)}</td>`).join('') + `<td class="net">${fmt(a.net)}</td>`;
+        tr.firstChild.textContent = a.acct; ab.append(tr);
+        at.t += a.total; a.d.forEach((x, i) => { at.d[i] += x; }); at.net += a.net;
+      });
+      $('acctFoot').innerHTML = `<tr><td>รวมทุกบัญชี</td><td>${fmt(at.t)}</td>` + at.d.map(x => `<td class="neg">${fmt(-x)}</td>`).join('') + `<td class="net">${fmt(at.net)}</td></tr>`;
+    }
+    const selA = sel.value;
+    const pick = mo => selA ? ((mo.acct && mo.acct[selA]) || { total: 0, d: OPT.map(() => 0), net: 0 }) : mo;
     const mb = $('monBody'); mb.textContent = '';
-    const tot = { t: 0, d: [0, 0, 0, 0], net: 0 };
-    res.months.forEach(mo => {
+    const tot = { t: 0, d: OPT.map(() => 0), net: 0 };
+    res.months.map(mo => Object.assign({ y: mo.y, m: mo.m }, pick(mo))).forEach(mo => {
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${TH_MONTHS[mo.m]} ${mo.y}</td><td>${fmt(mo.total)}</td>` +
         mo.d.map(x => `<td class="neg">${fmt(-x)}</td>`).join('') + `<td class="net">${fmt(mo.net)}</td>`;
@@ -2941,6 +3562,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     });
     $('monFoot').innerHTML = `<tr><td>รวม</td><td>${fmt(tot.t)}</td>` + tot.d.map(x => `<td class="neg">${fmt(-x)}</td>`).join('') + `<td class="net">${fmt(tot.net)}</td></tr>`;
     lastRes = res;
+    renderXfer(res);
     renderFlow();
     renderDetail();
   }
@@ -2953,26 +3575,28 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     monthIdx = Math.max(0, Math.min(monthIdx, months.length - 1));
     const mo = months[monthIdx];
     const { rows, cols } = table;
-    const items = [];
+    const items = [], selA = $('monAcct').value;
+    const md = selA ? ((mo.acct && mo.acct[selA]) || { d: OPT.map(() => 0) }).d : mo.d;
     rows.forEach((r, i) => {
       const d = r[cols.dt];
       if (!(d instanceof Date) || d.getUTCFullYear() !== mo.y || d.getUTCMonth() !== mo.m) return;
-      const opt = res.L[i] ? 0 : res.M[i] ? 1 : res.N[i] ? 2 : res.O[i] ? 3 : -1;
+      if (selA && String(r[cols.bank] == null ? '' : r[cols.bank]).trim() !== selA) return;
+      const opt = optOf(res, i);
       if (opt < 0) return;
       const g = typeof r[cols.d] === 'number' ? r[cols.d] : 0, w = typeof r[cols.w] === 'number' ? r[cols.w] : 0;
-      items.push({ i, d, opt, g, w, sub: opt === 2 ? res.N[i] : '' });
+      items.push({ i, d, opt, g, w, sub: optSub(res, i, opt) });
     });
     const hideWd = $('hidewd').checked;
     const shown = hideWd ? items.filter(x => x.g > 0) : items;
     const cutDeposits = items.filter(x => x.g > 0);
     const cutSum = cutDeposits.reduce((s, x) => s + x.g, 0);
-    $('mname').textContent = `${TH_MONTHS[mo.m]} ${mo.y}`;
+    $('mname').textContent = `${TH_MONTHS[mo.m]} ${mo.y}` + (selA ? ` · ${selA}` : '');
     $('mstat').textContent = items.length ? `ตัดยอดฝาก ${cutDeposits.length} รายการ รวม ${fmt(cutSum)} บาท` : 'ไม่มีรายการที่ถูกตัด';
     $('hidewd').parentElement.hidden = !items.some(x => x.g <= 0);
     $('mprev').disabled = monthIdx === 0;
     $('mnext').disabled = monthIdx === months.length - 1;
     const chips = $('mchips'); chips.textContent = '';
-    mo.d.forEach((x, k) => {
+    md.forEach((x, k) => {
       const n = shown.filter(it => it.opt === k).length;
       if (!n) return;
       const c = document.createElement('span');
@@ -3060,6 +3684,10 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
   $('exnames').addEventListener('input', schedule);
   $('gt').addEventListener('input', schedule);
   $('lt').addEventListener('input', schedule);
+  $('zeros').addEventListener('change', schedule);
+  $('xfer').addEventListener('change', schedule);
+  $('xferDays').addEventListener('change', schedule);
+  $('monAcct').addEventListener('change', update);
   $('dl').addEventListener('click', download);
   $('dlname').addEventListener('input', e => { e.target.dataset.touched = '1'; });
   $('dlname').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); download(); } });
@@ -3067,7 +3695,8 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     table = null; lastRes = null; monthIdx = 0;
     Object.assign(flow, { view: 'flow', top: 5, month: 'all', excludeCut: false, showAll: false, minPct: 20, minBaht: 1000, sel: null });
     $('flowEx').checked = false; $('rtAll').checked = false; applyView(); $('rtPct').value = 20; $('rtBaht').value = 1000; $('rtCutMsg').textContent = '';
-    for (const id of ['names', 'exnames', 'gt', 'lt', 'typewords']) $(id).value = '';
+    for (const id of ['names', 'exnames', 'gt', 'lt', 'typewords', 'zeros']) $(id).value = '';
+    $('xfer').checked = true; $('xferDays').value = '0'; $('xferBox').hidden = true;
     $('typeWordBox').hidden = true; $('twcount').textContent = '0 / 10 คำ';
     for (const id of ['types', 'extypes']) { $(id).textContent = ''; delete $(id).dataset.ready; }
     const fn = $('dlname'); fn.value = ''; delete fn.dataset.touched;
@@ -3098,21 +3727,16 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
 </script>
 <script>
 (function(){
-  var root=document.documentElement, btn=document.getElementById('themeBtn'), lbl=document.getElementById('themeLbl'), meta=document.querySelector('meta[name="theme-color"]'), cs=document.querySelector('meta[name="color-scheme"]');
-  function apply(t){
-    root.setAttribute('data-theme',t);
-    lbl.textContent = t==='light' ? 'กลางวัน' : 'กลางคืน';
-    btn.title = t==='light' ? 'โหมดกลางวัน · คลิกเพื่อเปลี่ยนเป็นกลางคืน' : 'โหมดกลางคืน · คลิกเพื่อเปลี่ยนเป็นกลางวัน';
-    btn.setAttribute('aria-pressed', String(t==='light'));
+  /* โหมดกลางวัน/กลางคืนตามเวลาใช้งาน (เวลาเครื่องผู้ใช้) ตรวจซ้ำทุก 5 นาที */
+  var root=document.documentElement, meta=document.querySelector('meta[name="theme-color"]'), cs=document.querySelector('meta[name="color-scheme"]');
+  function apply(){
+    var h=new Date().getHours(), t=h>=6&&h<18?'light':'dark';
+    if(root.getAttribute('data-theme')!==t) root.setAttribute('data-theme',t);
     if(meta) meta.setAttribute('content', t==='light' ? '#F6F7F9' : '#090C10');
     if(cs) cs.setAttribute('content', t);
   }
-  apply(root.getAttribute('data-theme')==='light'?'light':'dark');
-  btn.addEventListener('click',function(){
-    var t = root.getAttribute('data-theme')==='light' ? 'dark' : 'light';
-    apply(t); try{localStorage.setItem('ledgerline-theme',t);}catch(e){}
-  });
+  apply(); setInterval(apply, 5*60*1000);
 })();
 </script>
-</body>
-</html>
+
+</body></html>
