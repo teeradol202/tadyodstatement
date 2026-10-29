@@ -756,7 +756,7 @@ const BANKS = [
   {code:"SCB", short:"SCB", name:"ธนาคารไทยพาณิชย์ (SCB)", color:"#4E2E7F", kw:[/ไทยพาณิชย์/,/SIAM COMMERCIAL/i,/\bSCB\b/]},
   {code:"BBL", short:"BBL", name:"ธนาคารกรุงเทพ (BBL)", color:"#1E4598", kw:[/ธนาคารกรุงเทพ/,/BANGKOK BANK/i]},
   {code:"KTB", short:"KTB", name:"ธนาคารกรุงไทย (KTB)", color:"#1BA5E1", kw:[/กรุงไทย/,/KRUNG ?THAI/i]},
-  {code:"TTB", short:"TTB", name:"ธนาคารทหารไทยธนชาต (TTB)", color:"#1279BE", kw:[/ทหารไทยธนชาต/,/TMBTHANACHART/i,/\bttb\b/i]},
+  {code:"TTB", short:"TTB", name:"ธนาคารทหารไทยธนชาต (TTB)", color:"#1279BE", kw:[/ทหารไทยธนชาต/,/TMBTHANACHART/i,/\bttb\b/i,/Summary of your account for this period/i,/Closing ledger balance displayed/i]},
   {code:"BAAC", short:"ธกส", name:"ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร (ธ.ก.ส.)", color:"#4B9B2E", kw:[/ธ\.ก\.ส\./,/เพื่อการเกษตร/,/\bBAAC\b/i]},
   {code:"GSB", short:"GSB", name:"ธนาคารออมสิน (GSB)", color:"#EB198D", kw:[/ออมสิน/,/GOVERNMENT SAVINGS/i]},
   {code:"KKP", short:"KKP", name:"ธนาคารเกียรตินาคินภัทร (KKP)", color:"#199CC5", kw:[/เกียรตินาคิน/,/KIATNAKIN/i,/\bKKP\b/]},
@@ -873,12 +873,13 @@ function inferType(text, wd, dep){
 }
 const ACCT_RE = /(Account\s*(?:Number|No\.?)|เลขที่บัญชี|เลขบัญชี)\s*:?\s*([0-9][0-9xX*\-]{5,}[0-9xX*])/i;
 const OPEN_RE = /ยอดยกมา|ยอดคงเหลือยกมา|ยอดเงินคงเหลือยกมา|ยอดคงเหลือต้นงวด|beginning balance|opening balance|balance brought forward|brought forward|\bB\/F\b|previous balance/i;
-const SKIP_RE = /ยอดยกไป|carried forward|\bC\/F\b|^รวม|ยอดรวม|\btotal\b|สรุปรายการ|closing balance|ending balance/i;
+const SKIP_RE = /ยกไป|carried forward|\bC\/F\b|^รวม|ยอดรวม|\btotal\b|สรุปรายการ|closing balance|ending balance/i;
+const SUMBLOCK_RE = /closing (ledger|available) balance|summary of your account|\bbeginning on\b|closing balance on|total (withdrawal|deposit) (from|into)|(ยอด)?(เงิน)?คงเหลือ\S*\s*ณ[\s.]|รายละเอียดรายการเคล|^\s*for:\s*\d{1,2}[\/.\-]\d{1,2}/i;   // กล่องสรุปยอดหัว/ท้ายงวด (เช่น ทีทีบี)
 const NOISE_RE = /auto-generated|signature is not required|ไม่ต้องลงนาม|หน้า(ที่)?\s*\d+\s*(\/|จาก)|page\s*\d+\s*(of|\/)|เอกสารนี้|ออกโดยระบบ|www\.|call center|โทร\.?\s*\d/i;
 const REF_TOKEN = /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9][A-Za-z0-9\-\/]{7,}$/;
 
 const HEAD = {
-  date:/(วันที่|วันทำรายการ|^date|trans\.? ?date|posting date|value date)/i,
+  date:/(วันที่|วันทำรายการ|^date|trans\.? ?date|transaction ?date|posting date|value date)/i,
   time:/(เวลา|^time)/i,
   wd:/(ถอน|withdraw|debit|เดบิต|เงินออก|money out|paid out)/i,
   dep:/(ฝาก|deposit|credit|เครดิต|เงินเข้า|money in|paid in)/i,
@@ -1034,13 +1035,13 @@ function extractRaw(pages){
   const raws=[]; let opening=null, openingDate=null; let header=null; let lastYear=null, lastMonth=null, topText=null, curDate=null;
   let curAcct=null, newAcct=false;   // ไฟล์เดียวมีหลายบัญชี (เช่น รายงาน Cash Management ของกรุงเทพ) → ตรวจยอดคงเหลือแยกทีละบัญชี
   pages.forEach((p,pi)=>{
-    let last=null, hdrLine=null, pageHdr=false;
+    let last=null, hdrLine=null, pageHdr=false, inSum=false;   // inSum: กล่องสรุปยอด (ยอดต้นงวด/ยอดปิดบัญชี) ไม่ใช่รายการ
     for(const L of p.lines){
       if(!pageHdr && !(L.tokens[0] && parseDateAt(L.tokens[0].t,{allowNoYear:true}))){   // ส่วนหัวบัญชีก่อนตาราง (ไม่ใช่ในรายละเอียดรายการ)
         const am = L.text.match(ACCT_RE);
         if(am){ const no = am[2].replace(/[\s\-]/g,""); if(no!==curAcct){ if(curAcct!=null) newAcct=true; curAcct=no; last=null; } } }
       // second line of a two-line header ("ถอนเงิน /" over "ฝากเงิน")
-      if(hdrLine && header && (hdrLine.y - L.y) <= Math.max(hdrLine.h,L.h)*1.7 && !L.tokens.some(t=>parseAmount(t.t)) && !parseDateAt(L.tokens[0].t,{allowNoYear:true})){
+      const mergeHdr = (L)=>{
         for(const c of L.cells){
           const cx=(c.x0+c.x1)/2;
           let h = header.find(h=>c.x0 < h.x1+4 && c.x1 > h.x0-4);
@@ -1049,19 +1050,31 @@ function extractRaw(pages){
           const role = classifyHeaderCell(h.text.replace(/\s*\/\s*/g,"/"));
           if(role) h.role = role;
         }
+      };
+      if(hdrLine && header && (hdrLine.y - L.y) <= Math.max(hdrLine.h,L.h)*1.7 && !L.tokens.some(t=>parseAmount(t.t)) && !parseDateAt(L.tokens[0].t,{allowNoYear:true})){
+        mergeHdr(L);
         hdrLine = {y:L.y,h:L.h}; continue;
       }
       hdrLine = null;
+      if(SUMBLOCK_RE.test(L.text)){ inSum=true; last=null; continue; }   // กล่องสรุปยอดต้น/ปลายงวด — ตัวเลขใต้กล่องนี้ไม่ใช่รายการ
       // header?
       const roles = splitHeaderCells(L).map(c=>({role:classifyHeaderCell(c.text), cx:(c.x0+c.x1)/2, x0:c.x0, x1:c.x1, text:c.text}));
       const amtRoles = roles.filter(r=>["wd","dep","bal","amt"].includes(r.role)).length;
       const hasAmountTok = L.tokens.some(t=>parseAmount(t.t));
-      if(!hasAmountTok && ((roles.some(r=>r.role==="date") && amtRoles>=1) || amtRoles>=3) && roles.filter(r=>r.role).length>=3){
+      if(!hasAmountTok && ((roles.some(r=>r.role==="date") && amtRoles>=1) || amtRoles>=3 || (amtRoles>=2 && roles.filter(r=>r.role).length>=4)) && roles.filter(r=>r.role).length>=3){
         header = roles.slice().sort((a,b)=>a.x0-b.x0);
+        // หัวตาราง 3 บรรทัด (เช่น ทีทีบี: "Transaction / Description / Balance" อยู่บรรทัดบน) — รวมบรรทัดหัวตารางที่อยู่เหนือขึ้นไปด้วย
+        { const li=p.lines.indexOf(L); let below=L;
+          for(let k=li-1;k>=0 && k>=li-2;k--){ const U=p.lines[k];
+            if((U.y-below.y) > Math.max(U.h,below.h)*1.7 || U.tokens.some(t=>parseAmount(t.t)) || (U.tokens[0] && parseDateAt(U.tokens[0].t,{allowNoYear:true})) || SUMBLOCK_RE.test(U.text) || OPEN_RE.test(U.text)) break;
+            if(!splitHeaderCells(U).some(c=>classifyHeaderCell(c.text))) break;
+            mergeHdr(U); below=U; } }
         if(!header.some(h=>h.role==="desc")){ const t=header.find(h=>h.role==="type"); if(t){ t.role="desc"; t.wasType=true; } }   // ช่อง "รายการ" ช่องเดียว (เช่น ออมสิน): ใช้เป็นทั้งรายละเอียดและประเภท
         if(pi===0 && topText==null) topText = p.lines.slice(0, p.lines.indexOf(L)).map(l=>l.text).join("\n");
-        last=null; hdrLine={y:L.y,h:L.h}; pageHdr=true; continue;
+        last=null; hdrLine={y:L.y,h:L.h}; pageHdr=true; inSum=false; continue;
       }
+      if(inSum && !OPEN_RE.test(L.text) && !(L.tokens[0] && parseDateAt(L.tokens[0].t,{allowNoYear:true}) && L.tokens.slice(1,3).some(t=>TIME_RE.test(t.t)))){ last=null; continue; }
+      inSum=false;
       const looksTxn = L.tokens.some(t=>parseAmount(t.t)) && /\d{1,2}[\/\-.]\d{1,2}([\/\-.]\d{2,4})?|\d{1,2}\s*[\u0E00-\u0E7FA-Za-z.]{2,12}\s*\d{2,4}/.test(L.text);
       const contCandidate = last && !looksTxn && (last.y - L.y) <= last.h*2.1 && !L.tokens.some(t=>parseAmount(t.t));
       if(!looksTxn && (NOISE_RE.test(L.text) || (!contCandidate && isBoiler(L)))){ last=null; continue; }
@@ -1462,7 +1475,8 @@ function parsePdfPages(pages, bankChoice){
     repairRows(rows); fixDeferredPostings(rows);
     const v = verify(rows); v.initialFail = before;
     const bad = rows.filter(r=>!r.ok).length;
-    if(!best || bad<best.bad || (bad===best.bad && (v.fixed<best.v.fixed || (v.fixed===best.v.fixed && v.pass>best.v.pass)))) best={rows,v,strat,bad};
+    const score = bad + v.fixed/2;   // แถวที่ต้อง "ซ่อม" มากแปลว่าจับคอลัมน์ผิด — นับเป็นความผิดพลาดด้วย
+    if(!best || score<best.score || (score===best.score && v.pass>best.v.pass)) best={rows,v,strat,bad,score};
   }
   const accts = [...new Set(best.rows.map(r=>r.acct).filter(Boolean))];
   if(best.rows[0] && best.rows[0].opening){ const fr = best.rows.find(r=>!r.opening && r.acct); if(fr) best.rows[0].acct = fr.acct; }
@@ -2292,8 +2306,20 @@ function depositTypes(table) {
 }
 
 /* เฉพาะไฟล์กสิกร: คอลัมน์ "รายการ" เก็บข้อความว่าทำรายการอะไร ส่วนคอลัมน์ประเภท/ช่องทางเก็บช่องทาง (K PLUS, ATM, สาขา) */
+/* ทีทีบี: ช่อง "ประเภท/ช่องทาง" คือ Channels (Branch, KBANK, Mobile …) ส่วนชนิดรายการ (Cash Deposit, Transfer In …) อยู่ต้นช่อง Description */
+function isTTB(table) {
+  if (table.cols.bank == null || table.cols.bank < 0) return false;
+  return table.rows.some(r => /ทหารไทย|\bTTB\b/i.test(String(r[table.cols.bank] == null ? '' : r[table.cols.bank])));
+}
+function descHead(d) {                                                   // "Cash Deposit at ttb CENTRAL" → "Cash Deposit"
+  let t = String(d == null ? '' : d).replace(/\s+/g, ' ').trim();
+  const m = t.match(/\s+(at|via)\s+|\s+([A-Z]{2,6}\s+)?X\d{3,}/i); if (m) t = t.slice(0, m.index);
+  t = t.replace(/[\s,;:|-]+$/, '').trim();
+  return /^[A-Za-z]/.test(t) && t.length >= 3 && t.length <= 40 && !/\d{4,}/.test(t) ? t : '';
+}
 function isKBank(table) {
   if (table.cols.detail < 0) return false;
+  if (isTTB(table)) return true;                                                   // ค้นแบบมีคำนี้อยู่ ทั้งช่องทางและรายละเอียด
   if (table.cols.bank == null || table.cols.bank < 0) return true;                 // ไม่มีคอลัมน์ธนาคาร → เปิดไว้ให้เลือกได้
   let known = false;
   for (const r of table.rows) {
@@ -2340,7 +2366,7 @@ function channelLabel(ch) {                                          // "CDM RCM
   return w.length >= 2 && w.length <= 24 ? w : '';
 }
 function itemTypes(table) {                                          // ตัวเลือกกลุ่ม "รายการ" และ "ช่องทาง" จากแถวยอดฝาก — ใช้ข้อความตามต้นฉบับ ไม่ย่อ
-  const items = new Map(), chans = new Map();
+  const items = new Map(), chans = new Map(), ttb = isTTB(table);
   const add = (m, k) => { k = String(k == null ? '' : k).replace(/\s+/g, ' ').trim(); if (k) m.set(k, (m.get(k) || 0) + 1); };
   table.rows.forEach((row, i) => {
     if (!(numOr0(row[table.cols.d]) > 0)) return;
@@ -2348,7 +2374,7 @@ function itemTypes(table) {                                          // ตั�
     const dRaw = table.cols.detail >= 0 ? String(row[table.cols.detail] == null ? '' : row[table.cols.detail]) : '';
     const chCol = table.cols.channel != null && table.cols.channel >= 0 ? String(row[table.cols.channel] == null ? '' : row[table.cols.channel]) : '';
     const chKept = table.chans && table.chans[i] ? String(table.chans[i]) : '';          // ช่องทางเต็มจากขั้นแปลงไฟล์
-    let { item, ch } = chCol ? { item: tRaw.trim(), ch: chCol } : chKept ? { item: tRaw.trim(), ch: chKept } : splitTypeParts(tRaw);
+    let { item, ch } = chCol ? { item: tRaw.trim(), ch: chCol } : chKept ? { item: tRaw.trim(), ch: chKept } : ttb ? { item: descHead(dRaw), ch: tRaw.trim() } : splitTypeParts(tRaw);
     if (!ch) { const m = dRaw.match(KB_CHANNEL_RE); if (m) ch = m[0]; }          // ไฟล์รูปแบบกสิกร: ช่องทางอยู่ต้นช่องรายละเอียด
     add(chans, ch);
     // ชื่อรายการตามที่พิมพ์ในไฟล์ · ถ้าไฟล์ไม่มีช่องรายการ จึงหาคำบอกชนิดรายการ (เช่น ฝากเงินสด) จากรายละเอียด
@@ -2810,7 +2836,7 @@ function buildWorkbook(ExcelJS, table, settings) {
     showErrorMessage: true, errorTitle: 'ตัวเลขไม่ถูกต้อง', error: 'กรุณาใส่ตัวเลขตั้งแต่ 0 ขึ้นไป', formulae: [0] };
 
   label('B16', 'ตัวเลือก 5: ตัดยอดฝากตามประเภท/ช่องทาง', true);
-  hint('C16', res.kb ? 'กสิกร: เลือกได้จากทั้งช่องรายการและช่องทาง หรือพิมพ์คำเองในแถวถัดไป (ค้นแบบมีคำนี้อยู่)' : C ? 'เลือกจากรายการ Column ' + C + ' (ประเภท/ช่องทาง) ได้หลายประเภท ช่องละ 1 ประเภท' : 'ไม่พบคอลัมน์ประเภท/ช่องทางในไฟล์ ตัวเลือกนี้จึงไม่ทำงาน');
+  hint('C16', res.kb ? 'เลือกได้จากทั้งช่องรายการและช่องทาง หรือพิมพ์คำเองในแถวถัดไป (ค้นแบบมีคำนี้อยู่)' : C ? 'เลือกจากรายการ Column ' + C + ' (ประเภท/ช่องทาง) ได้หลายประเภท ช่องละ 1 ประเภท' : 'ไม่พบคอลัมน์ประเภท/ช่องทางในไฟล์ ตัวเลือกนี้จึงไม่ทำงาน');
   label('B17', 'ประเภท/ช่องทาง', false, 2);
   let list = []; let len = 2;
   const kbOpts = res.kb ? itemTypes(table) : null;
@@ -3587,7 +3613,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
       const t = typeof item === 'string' ? item : item.v, n = typeof item === 'string' ? 0 : (item.n || 0), g = (item && item.g) || '';
       if (g !== group) { group = g; if (g) { const h = document.createElement('div'); h.className = 'checks-head'; h.textContent = g; box.append(h); } }
       const lab = document.createElement('label');
-      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = t; cb.checked = first ? t === preset : prev.has(t);
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = t; cb.checked = first ? (Array.isArray(preset) ? preset.includes(t) : t === preset) : prev.has(t);
       const sp = document.createElement('span'); sp.textContent = t;
       if (n) { const c = document.createElement('i'); c.className = 'cnt'; c.textContent = ` ${n} รายการ`; sp.append(c); }
       lab.append(cb, sp); box.append(lab);
@@ -3612,7 +3638,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     }
     $('typeHelp').textContent = 'เลือกได้หลายประเภท';
     $('extypehelp').textContent = 'เลือกได้หลายประเภท';
-    fillChecks('types', types, 'ฝากเงินสด');
+    fillChecks('types', types, ['ฝากเงินสด', 'Cash Deposit']);
     fillChecks('extypes', types, null);
     if (kb) readNames('typewords', 'twcount');
   }
