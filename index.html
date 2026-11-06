@@ -752,7 +752,7 @@ details summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:
 /* ---------------- Banks ---------------- */
 const BANKS = [
   {code:"AUTO", short:"Auto", name:"อัตโนมัติ", color:"var(--accent)", note:"PDF: ตรวจจับธนาคารจากเนื้อหาไฟล์ แล้วเลือกวิธีอ่านที่ยอดเงินตรวจผ่านมากที่สุด · Excel: จับคู่คอลัมน์อัตโนมัติ และแก้ไขเองได้"},
-  {code:"KBANK", short:"K", name:"ธนาคารกสิกรไทย (KBank)", color:"#138F2D", kw:[/กสิกรไทย/,/KASIKORN/i]},
+  {code:"KBANK", short:"K", name:"ธนาคารกสิกรไทย (KBank)", color:"#138F2D", kw:[/กสิกรไทย/,/KASIKORN/i,/KBPDF/,/K-?BIZ Contact Center/i,/(Issued by|ออกโดย) K BIZ/i,/สาขาเจ้าของบัญชี/,/Owner Branch/i]},
   {code:"SCB", short:"SCB", name:"ธนาคารไทยพาณิชย์ (SCB)", color:"#4E2E7F", kw:[/ไทยพาณิชย์/,/SIAM COMMERCIAL/i,/\bSCB\b/]},
   {code:"BBL", short:"BBL", name:"ธนาคารกรุงเทพ (BBL)", color:"#1E4598", kw:[/ธนาคารกรุงเทพ/,/BANGKOK BANK/i]},
   {code:"KTB", short:"KTB", name:"ธนาคารกรุงไทย (KTB)", color:"#1BA5E1", kw:[/กรุงไทย/,/KRUNG ?THAI/i]},
@@ -1183,7 +1183,49 @@ function spanRole(x0, header){
   for(const h of header){ if(h.x0 <= x0 + 2) role = h.role; else break; }
   return role; // null = a column we don't use (approver, branch code, ...)
 }
+/* ตำแหน่งเริ่มของคอลัมน์ข้อความ "จากข้อมูลจริง": หัวคอลัมน์มักพิมพ์กึ่งกลาง แต่ข้อความชิดซ้าย จึงเริ่มก่อนหัวคอลัมน์
+   (เช่น กสิกร: ช่องทางเริ่มที่ x≈333 ทั้งที่หัว "ช่องทาง" อยู่ x≈357 · รายละเอียดเริ่ม x≈404 หัวอยู่ x≈455)
+   หาจุดเริ่มของกลุ่มคำ (ห่างจากคำก่อนหน้าเกินช่องไฟ) ที่ซ้ำกันบ่อยที่สุดในช่วงระหว่างคอลัมน์ก่อนหน้ากับหัวคอลัมน์นั้น */
+const TEXT_COL_ROLES = ["desc","type","channel","ref","branch"];
+function learnTextCols(raws){
+  const byH = new Map();
+  for(const r of raws){ if(r.header){ if(!byH.has(r.header)) byH.set(r.header, []); byH.get(r.header).push(r); } }
+  for(const [H, rs] of byH){
+    if(H.__learned) continue; H.__learned = true;
+    // หัวตารางมีช่อง "รายละเอียด" สองช่อง (เช่น Descriptions + Details ของกสิกรฉบับภาษาอังกฤษ) และไม่มีช่องรายการ → ช่องซ้ายคือรายการ
+    const descs = H.filter(h=>h.role==="desc");
+    if(descs.length>=2 && !H.some(h=>h.role==="type")){ descs[0].role="type"; descs[0].wasDesc=true; }
+    const hist = new Map(); let lines = 0;
+    const addLine = ws => {
+      ws = ws.filter(w=>!parseAmount(w.t)).sort((a,b)=>a.x0-b.x0); if(!ws.length) return; lines++;
+      let pv=null;
+      for(const w of ws){ const hgt = w.h || 8; if(!pv || w.x0 - pv.x1 >= hgt*0.6){ const k=Math.round(w.x0); hist.set(k,(hist.get(k)||0)+1); } pv=w; }
+    };
+    for(const r of rs){ addLine(r.words.filter(w=>!w.cont).map(w=>({...w,h:r.h}))); }
+    const sorted = H.slice().sort((a,b)=>a.x0-b.x0);
+    sorted.forEach((h,i)=>{
+      h.start = h.x0;
+      if(!TEXT_COL_ROLES.includes(h.role) || i===0) return;
+      const lo = sorted[i-1].x1, hi = h.x0 + 2;
+      let best=null, bn=0;
+      for(const [x,n] of hist){ if(x>lo && x<=hi){ const tot = (hist.get(x-1)||0)+n+(hist.get(x+1)||0); if(tot>bn || (tot===bn && x<best)){ bn=tot; best=x; } } }
+      if(best!=null && bn >= Math.max(2, lines*0.2)) h.start = best - 1.5;
+    });
+  }
+}
+function colRole(x0, header){                       // เหมือน spanRole แต่ใช้ตำแหน่งเริ่มที่เรียนรู้จากข้อมูล
+  let role=null, bx=-Infinity;
+  for(const h of header){ const st = h.start!=null ? h.start : h.x0; if(st <= x0 + 2 && st >= bx){ bx=st; role=h.role; } }
+  if(role==null && header.length) role = header.slice().sort((a,b)=>a.x0-b.x0)[0].role;
+  return role;
+}
+/* ต่อข้อความข้ามบรรทัด: คำไทยที่ถูกตัดกลางคำ (เช่น "แอปพลิ" + "เคชัน") ต่อกันโดยไม่เว้นวรรค */
+function joinWrap(a, b){
+  if(!a) return b; if(!b) return a;
+  return /[\u0E00-\u0E7F]$/.test(a) && /^[\u0E00-\u0E7F]/.test(b) && !/^(จาก|โอนไป|เพื่อ|รหัส)/.test(b) ? a + b : a + " " + b;
+}
 function buildRows(raws, opening, strategy){
+  learnTextCols(raws);
   const rows=[];
   let prev = opening;
   const conv={negWd:0,posWd:0,negDep:0,posDep:0};   // เรียนรู้จากไฟล์: ยอดถอนพิมพ์ติดลบ ยอดฝากไม่มีเครื่องหมาย
@@ -1219,37 +1261,39 @@ function buildRows(raws, opening, strategy){
     /* ข้อความที่พิมพ์ต่อกันเป็นวลีเดียว (ห่างกันแค่ช่องไฟ) อยู่ช่องเดียวกันทั้งวลี แม้จะเริ่มก่อนหัวคอลัมน์ (หัวตารางอยู่กึ่งกลาง ข้อความชิดซ้าย)
        เช่น "SAV Deposit by Cash" ของออมสิน — ใช้ช่องที่หัวคอลัมน์ทับกับวลีมากที่สุด ไม่ตัดวลีแบ่งไปสองช่อง */
     const runRole = new Map();
+    const learned = r.header ? r.header.filter(h=>h.start!=null && h.start!==h.x0).map(h=>h.start+1.5) : [];   // จุดเริ่มคอลัมน์ที่เห็นซ้ำในข้อมูล = ขอบคอลัมน์จริง
+    const atEdge = w => learned.some(x=>Math.abs(w.x0-x)<=1.5);
     if(r.header){
       const TEXT_ROLES = ["desc","type","channel","ref","branch"];
       const ws = r.words.filter(w=>!w.cont).slice().sort((a,b)=>a.x0-b.x0);
       let run = [];
       const flush = () => {
         if(run.length){
-          const roles = run.map(w=>spanRole(w.x0, r.header));
+          const roles = run.map(w=>colRole(w.x0, r.header));
           if(new Set(roles).size>1 || !TEXT_ROLES.includes(roles[0])){       // วลีคร่อมสองช่อง หรือเริ่มใต้หัวคอลัมน์วันที่/เวลา
             const x0 = run[0].x0, x1 = run[run.length-1].x1; let best=null, bo=0;
-            for(const h of r.header){ if(!TEXT_ROLES.includes(h.role)) continue; const o = Math.min(x1,h.x1)-Math.max(x0,h.x0); if(o>bo){ bo=o; best=h.role; } }
+            for(const h of r.header){ if(!TEXT_ROLES.includes(h.role)) continue; const o = Math.min(x1,h.x1)-Math.max(x0,h.start!=null?h.start:h.x0); if(o>bo){ bo=o; best=h.role; } }
             if(best) run.forEach(w=>runRole.set(w,best));
           }
         }
         run = [];
       };
-      for(const w of ws){ const pv = run[run.length-1]; if(pv && (w.x0-pv.x1 >= (r.h||8)*0.6 || parseAmount(w.t) || parseAmount(pv.t))) flush(); run.push(w); }
+      for(const w of ws){ const pv = run[run.length-1]; if(pv && (w.x0-pv.x1 >= (r.h||8)*0.6 || parseAmount(w.t) || parseAmount(pv.t) || atEdge(w))) flush(); run.push(w); }
       flush();
     }
-    const itemCol = r.header ? r.header.find(h=>h.wasType) : null, itemWords = [];
+    const itemCol = r.header ? r.header.find(h=>h.wasType) : null, itemWords = [], lastCont = {};
     for(const w of r.words){
-      let role = runRole.get(w) || (r.header ? spanRole(w.x0, r.header) : "desc");
+      let role = runRole.get(w) || (r.header ? colRole(w.x0, r.header) : "desc");
       if(r.header && ["wd","dep","bal","amt"].includes(role) && !parseAmount(w.t)){   // ข้อความเริ่มก่อนหัวคอลัมน์ถัดไปเล็กน้อย (เช่น "Internet" ใต้ Channel ของกรุงเทพ)
         const nx = r.header.find(h=>h.x0 > w.x0 && h.x0 - w.x0 <= 6 && ["channel","branch","desc","type","ref"].includes(h.role));
         if(nx) role = nx.role;
       }
       // a description that overflows into the next column keeps its words (normal word spacing)
       // ข้อความในช่องรายการ/ช่องทาง/รายละเอียดที่ยาวล้นไปใต้หัวคอลัมน์ถัดไป (เช่น "SAV Deposit by Cash") ยังเป็นของช่องเดิม — คำห่างกันแค่ช่องไฟปกติ และไม่ใช่ตัวเลขจำนวนเงิน
-      if(["desc","type","channel"].includes(pr) && pw && !w.cont && role!==pr && w.x0-pw.x1 < (r.h||8)*0.6 && w.x0 > pw.x0 && !parseAmount(w.t)) role=pr;
+      if(["desc","type","channel"].includes(pr) && pw && !w.cont && role!==pr && w.x0-pw.x1 < (r.h||8)*0.6 && w.x0 > pw.x0 && !parseAmount(w.t) && !atEdge(w)) role=pr;
       pw=w; pr=role;
-      if(role==="type"){ type = type ? type+" "+w.t : w.t; continue; }
-      if(role==="channel"){ channel = channel ? channel+" "+w.t : w.t; continue; }
+      if(role==="type"){ type = w.cont && !lastCont.type ? joinWrap(type, w.t) : (type ? type+" "+w.t : w.t); lastCont.type = w.cont; continue; }
+      if(role==="channel"){ channel = w.cont && !lastCont.channel ? joinWrap(channel, w.t) : (channel ? channel+" "+w.t : w.t); lastCont.channel = w.cont; continue; }
       if(role==="ref"){ ref = ref ? ref+" "+w.t : w.t; continue; }
       if(role==="branch"){ branch = branch ? branch+" "+w.t : w.t; continue; }
       if(hasDescCol && role!=="desc"){
@@ -1549,7 +1593,7 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
     const wdA=parseLooseAmount(g(row,"wd")), depA=parseLooseAmount(g(row,"dep")), amtA=parseLooseAmount(g(row,"amt")), balA=parseLooseAmount(g(row,"bal"));
     const bt = bankTxt(row), seg = !!(bt && lastBank!=null && bt!==lastBank && raws.length && !raws[raws.length-1].open);
     if(bt) lastBank = bt;
-    raws.push({date:{y:d.y,m:d.m,d:d.d}, time, type:g(row,"type"), ref:g(row,"ref"), desc:g(row,"desc"), wdA, depA, amtA, balA, bankLabel:bt, segStart:seg,
+    raws.push({date:{y:d.y,m:d.m,d:d.d}, time, type:g(row,"type"), channel: map.channel!=null && map.channel!==map.type ? g(row,"channel") : null, ref:g(row,"ref"), desc:g(row,"desc"), wdA, depA, amtA, balA, bankLabel:bt, segStart:seg,
       manualEx: exCol>=0 && /เลือกเอง/.test(String(row[exCol]==null?"":row[exCol]))});
   }
   if(!raws.length) return {rows:[], bankCode:code, bankName, error:"ไม่พบรายการใต้หัวตาราง — ตรวจการจับคู่คอลัมน์"};
@@ -1564,10 +1608,12 @@ function parseExcelGrid(grid, mapping, bankChoice, fileName){
       else if(r.amtA.sign==="-") wd=a; else if(r.amtA.sign==="+") dep=a;
       else if(DEP_HINT.test(String(r.type||"")+" "+String(r.desc||""))) dep=a; else wd=a;
     }
-    const desc = r.desc==null?"":String(r.desc).replace(/\s+/g," ").trim();
+    let desc = r.desc==null?"":String(r.desc).replace(/\s+/g," ").trim();
+    const channel = r.channel==null ? "" : String(r.channel).replace(/\s+/g," ").trim();
+    if(channel && desc.startsWith(channel)) desc = desc.slice(channel.length).trim();   // ไฟล์กสิกร: ช่องทางพิมพ์นำหน้ารายละเอียดไว้แล้ว
     const type = r.type!=null && String(r.type).trim() ? String(r.type).trim() : inferType(desc, wd, dep);
     if(r.ref==null || !String(r.ref).trim()) r.ref = refFromDesc(desc);
-    rows.push({date:r.date, time:r.time, type, ref: r.ref==null?"":String(r.ref).trim(), desc, wd, dep, bal, raw:[r.wdA,r.depA,r.amtA,r.balA].filter(Boolean).map(a=>({v:a.v,sign:a.sign})), bankLabel:r.bankLabel, segStart:r.segStart, manualEx:r.manualEx});
+    rows.push({date:r.date, time:r.time, type, item: channel ? type : "", channel, ref: r.ref==null?"":String(r.ref).trim(), desc, wd, dep, bal, raw:[r.wdA,r.depA,r.amtA,r.balA].filter(Boolean).map(a=>({v:a.v,sign:a.sign})), bankLabel:r.bankLabel, segStart:r.segStart, manualEx:r.manualEx});
     if(bal!=null) prev=bal; else if(prev!=null) prev=prev-wd+dep;
   }
   const out = finalizeRows(rows, opening, bankName, openingDate);
@@ -2018,7 +2064,13 @@ async function processFile(f){
       f.cutSettings = wb.Sheets["เครื่องมือ"] && txName ? readCutSettings(wb.Sheets["เครื่องมือ"]) : null;
       f.cutFile = !!f.cutSettings;
       if(f.cutFile) pendingCutSettings = f.cutSettings;
+      const chanCol = txName ? readChanSheet(wb, grid) : -1;
       f.grid = grid; f.mapping = autoMapExcel(grid);
+      if(chanCol >= 0 && f.mapping.headerRow === 0){                 // ช่องทางจากชีตซ่อน (ไฟล์กสิกรที่ส่งออกจากเว็บนี้)
+        const hdr = grid[0].map(v => String(v == null ? "" : v).trim());
+        const tIdx = hdr.findIndex((t, c) => c !== chanCol && (t === "รายการ" || t === "ประเภท/ช่องทาง" || t === "ประเภท"));
+        f.mapping.map.channel = chanCol; if(tIdx >= 0) f.mapping.map.type = tIdx;
+      }
       Object.assign(f, parseExcelGrid(grid, f.mapping, f.bankChoice||"AUTO", f.name));
     }
     f.status = f.error ? "error" : "done";
@@ -2089,7 +2141,7 @@ $("repairBtn").addEventListener("click", ()=>{
 /* กสิกรและธนาคารที่มีคอลัมน์ "ช่องทาง" แยก → ส่งออกเป็น 2 คอลัมน์: รายการ และ ช่องทาง */
 /* รูปแบบไฟล์ Excel (11 คอลัมน์ ทุกธนาคาร ตามไฟล์ตัวอย่าง Statement_Export.xlsx)
    ประเภท/ช่องทาง = "รายการ" (เช่น ฝากเงินสด) · รายละเอียด = ช่องทาง + รายละเอียด · แถวแรกเป็น "ยอดยกมา" เมื่อ Statement พิมพ์ไว้ */
-const KB_CH_ANY = /\b(K PLUS|K BIZ|K-Cash Connect Plus|MAKE by KBank|Internet\/Mobile|EDC\/K SHOP|CDM|ATM|Online Direct Debit)\b|ต่างธนาคาร|โอนเข้า\/หักบัญชีอัตโนมัติ|ธุรกรรมต่างประเทศ|สาขา/i;
+const KB_CH_ANY = /\b(K PLUS SHOP|K PLUS|K BIZ|K SHOP|K-Cash Connect Plus|MAKE by KBank|Internet\/Mobile|EDC\/K SHOP|EDC|CDM|ATM|Online Direct Debit|Mobile Banking)\b|ตู้เติมเงิน|Kiosk \/ Mobile App|เคแบงก์\s*เซอร์วิส|ต่างธนาคาร|โอนเข้า\/หักบัญชีอัตโนมัติ|ธุรกรรมต่างประเทศ|สาขา/i;
 function exportLayout(rows){
   const kbHits = rows.filter(r=>/\b(K PLUS|K BIZ|MAKE by KBank|K-Cash)\b/i.test(`${r.type||""} ${r.channel||""} ${r.desc||""}`)).length;
   const kb = rows.some(r=>/กสิกร|kbank|kasikorn/i.test(r.bank||""))
@@ -2118,6 +2170,25 @@ function exportLayout(rows){
   const chan = r => kb ? kbParts(r).ch : (r.item ? (r.channel||"").trim() : "");   // ช่องทางตามต้นฉบับ (ไม่ย่อ) ใช้ทำตัวเลือกประเภท/ช่องทาง
   return { kb, headers, widths, type, desc, chan, openingRow, split:false, cells: r => [type(r)] };
 }
+/* กสิกร: ไฟล์ Excel รวม "ช่องทาง" ไว้ต้นช่องรายละเอียด (รูปแบบ 11 คอลัมน์) — เก็บช่องทางเต็มตาม Statement ไว้ในชีตซ่อน "ช่องทาง"
+   เมื่อนำไฟล์นี้กลับเข้าหน้าตัดยอด จะได้ตัวเลือกช่องทางตรงตามต้นฉบับ โดยไม่ต้องเดาจากข้อความรายละเอียด */
+const CHAN_SHEET = "ช่องทาง";
+function addChanSheet(wb, chans){
+  if(!chans || !chans.some(Boolean)) return;
+  const sh = wb.addWorksheet(CHAN_SHEET, { state: "hidden" });
+  sh.addRow(["แถว", "ช่องทาง"]);
+  chans.forEach((c, i) => sh.addRow([i + 1, c || null]));
+}
+function readChanSheet(wb, grid){                                     // คืน index คอลัมน์ช่องทางที่ต่อท้ายใน grid หรือ -1
+  const sh = wb.Sheets[CHAN_SHEET]; if(!sh || !grid.length) return -1;
+  const g = XLSX.utils.sheet_to_json(sh, {header:1, raw:true, defval:null, blankrows:false});
+  const col = Math.max(...grid.map(r => (r||[]).length));
+  let n = 0;
+  for(const r of g.slice(1)){ const k = +r[0]; if(k >= 1 && k < grid.length && r[1] != null){ grid[k][col] = String(r[1]); n++; } }
+  if(!n) return -1;
+  grid[0][col] = "ช่องทาง";
+  return col;
+}
 async function buildWorkbook(){
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Transactions");
@@ -2133,7 +2204,7 @@ async function buildWorkbook(){
     for(let c=1;c<=LAY.headers.length;c++) orow.getCell(c).font = font;
     if(o.date) orow.getCell(1).numFmt = "DD/MM/YYYY";
   }
-  let lastDate=null;
+  let lastDate=null; const chanList = LAY.openingRow ? [""] : [];
   for(let {r} of allRows()){
     if(r.opening) continue;                                   // the export starts directly with transactions
     if(r.date && r.date.y && r.date.m && r.date.d) lastDate=r.date; else if(lastDate) r = {...r, date:lastDate};
@@ -2152,7 +2223,9 @@ async function buildWorkbook(){
     ]);
     for(let c=1;c<=LAY.headers.length;c++) row.getCell(c).font = font;
     if(r.date) row.getCell(1).numFmt = "DD/MM/YYYY";
+    chanList.push(LAY.chan(r) || "");
   }
+  if(LAY.kb) addChanSheet(wb, chanList);
   return wb.xlsx.writeBuffer();
 }
 $("exportBtn") && $("exportBtn").addEventListener("click", async ()=>{
@@ -2349,7 +2422,7 @@ function splitTypeParts(v) {
   const m = s.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
   return m ? { item: m[1].trim(), ch: m[2].trim() } : { item: s, ch: '' };
 }
-const KB_CHANNEL_RE = /^(K PLUS|K BIZ|K-Cash Connect Plus|MAKE by KBank|Internet\/Mobile(\s+(KTB|GSB|SCB|BAY|BBL|TTB|UOBT|CIMBT|ICBCT|KK|BAAC|LHB|TISCO))?|EDC\/K SHOP(\/MYQR)?|CDM|ATM|Online Direct Debit|ต่างธนาคาร|โอนเข้า\/หักบัญชีอัตโนมัติ|ธุรกรรมต่างประเทศ|สาขา\S*)/i;
+const KB_CHANNEL_RE = /^(K PLUS SHOP|K PLUS|K BIZ|K SHOP|K-Cash Connect Plus|MAKE by KBank|Internet\/Mobile(\s+[A-Z]{2,6}\b)?|ตู้เติมเงิน\s*\/\s*โมบาย\s*แอปพลิ\s*เคชัน\s*\/\s*เงินโอน|Kiosk \/ Mobile App\. \/ (Automatic )?Transfer|EDC\/K SHOP(\/MYQR)?|EDC|เคแบงก์\s*เซอร์วิส\s*(ที่\s*)?[^\s]*|K-?Bank Service\S*|CDM(\s+RCM)?|ATM(\s+RCM)?|Online Direct Debit|Mobile Banking|ต่างธนาคาร|โอนเข้า\/หักบัญชีอัตโนมัติ|ธุรกรรมต่างประเทศ|สาขา\S*)/i;
 const BANK_SUFFIX = /^(KTB|GSB|SCB|BAY|BBL|TTB|KBANK|KKP|KK|UOB|UOBT|CIMB|CIMBT|TISCO|LHB|BAAC|TMN|ICBC|ICBCT|GHB|ต่าง)$/i;
 const KEEP_CHANNEL = /^(MAKE by KBank|K-Cash Connect Plus|Online Direct Debit|EDC\/K SHOP\/MYQR|โอนเข้า\/หักบัญชีอัตโนมัติ)/i;
 function channelLabel(ch) {                                          // "CDM RCM ยิ่งดี สาขา…" → CDM · "Internet/Mobile KTB" → Internet/Mobile
@@ -2366,7 +2439,7 @@ function channelLabel(ch) {                                          // "CDM RCM
   return w.length >= 2 && w.length <= 24 ? w : '';
 }
 function itemTypes(table) {                                          // ตัวเลือกกลุ่ม "รายการ" และ "ช่องทาง" จากแถวยอดฝาก — ใช้ข้อความตามต้นฉบับ ไม่ย่อ
-  const items = new Map(), chans = new Map(), ttb = isTTB(table);
+  const items = new Map(), chans = new Map(), ttb = isTTB(table), kbOnly = isKBank(table) && !ttb;
   const add = (m, k) => { k = String(k == null ? '' : k).replace(/\s+/g, ' ').trim(); if (k) m.set(k, (m.get(k) || 0) + 1); };
   table.rows.forEach((row, i) => {
     if (!(numOr0(row[table.cols.d]) > 0)) return;
@@ -2375,7 +2448,13 @@ function itemTypes(table) {                                          // ตั�
     const chCol = table.cols.channel != null && table.cols.channel >= 0 ? String(row[table.cols.channel] == null ? '' : row[table.cols.channel]) : '';
     const chKept = table.chans && table.chans[i] ? String(table.chans[i]) : '';          // ช่องทางเต็มจากขั้นแปลงไฟล์
     let { item, ch } = chCol ? { item: tRaw.trim(), ch: chCol } : chKept ? { item: tRaw.trim(), ch: chKept } : ttb ? { item: descHead(dRaw), ch: tRaw.trim() } : splitTypeParts(tRaw);
-    if (!ch) { const m = dRaw.match(KB_CHANNEL_RE); if (m) ch = m[0]; }          // ไฟล์รูปแบบกสิกร: ช่องทางอยู่ต้นช่องรายละเอียด
+    if (!ch) { const m = dRaw.match(KB_CHANNEL_RE); if (m) ch = m[0]; }          // ไฟล์ Excel กสิกรแบบเก่า: ช่องทางอยู่ต้นช่องรายละเอียด
+    if (kbOnly) {                                                        // กสิกร: ตัวเลือกมาจากหัวข้อ "รายการ" และ "ช่องทาง" ของ Statement เท่านั้น
+      if (ch && ch === item) ch = '';
+      if (item && item !== 'ยอดยกมา') add(items, item);
+      add(chans, ch);
+      return;
+    }
     add(chans, ch);
     // ชื่อรายการตามที่พิมพ์ในไฟล์ · ถ้าไฟล์ไม่มีช่องรายการ จึงหาคำบอกชนิดรายการ (เช่น ฝากเงินสด) จากรายละเอียด
     if (item) add(items, item);
@@ -3018,6 +3097,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     let name = raw;
     if (acct) name = raw.slice(raw.indexOf(acct) + acct.length);
     else { const m = raw.match(/(?:จาก|โอนไป|ไปยัง|ชำระ\s*Ref)\s+(.*)$/); if (m) name = m[1]; }
+    if (/\+\+/.test(name)) name = name.slice(0, name.indexOf('++'));   // "++" = ธนาคารตัดชื่อไว้ตรงนี้ ข้อความหลังจากนั้นเป็นหมายเหตุ (เช่น DIRECT CREDIT Ref …)
     name = name.replace(/\++/g, ' ').replace(/\b(QR\s*Payment|Payment|เงินโอน|เคชัน)\b/gi, ' ')
       .replace(/[()\[\]\/,:;|]+/g, ' ').replace(/\s+/g, ' ').trim();
     while (/(?:^|\s)\d{1,4}$/.test(name)) name = name.replace(/(?:^|\s+)\d{1,4}$/, '').trim();   // trailing branch code such as " 488"
@@ -3899,6 +3979,7 @@ if (typeof module !== 'undefined') module.exports = { extractTable, compute, bui
     try {
       const XL = await ensureExcelJS();
       const { wb } = buildWorkbook(XL, table, readSettings());
+      if (isKBank(table) && !isTTB(table)) addChanSheet(wb, table.chans);
       try { await addSankeySheet(wb); } catch (e) { console.warn('Sankey sheet skipped', e); }
       const buf = await wb.xlsx.writeBuffer();
       const cap = dlCap || await dlPromise;
